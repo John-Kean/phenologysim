@@ -14,7 +14,7 @@
 #'
 #' @returns (dataframe) drivers with JulianDate, days_passed and life stage totals added as new columns
 #'
-#' @example
+#' @examples
 #' results <- run_simulation(
 #'   population = example_lifestages,
 #'   initialise = c(eggs = 1000),

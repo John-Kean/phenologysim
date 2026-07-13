@@ -242,7 +242,7 @@ maturing.lifestage <- function(x, ...) {
 #'
 #' @param x A lifestage object
 #' @returns The total number of individuals in that lifestage, across all cohorts
-#' @export
+@export
 #' @examples
 #'   total(larvae)
 #'

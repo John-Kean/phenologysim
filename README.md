@@ -3,34 +3,239 @@
 
 # phenologysim
 
-A framework for temperature-driven phenology models.
+`phenologysim` is an R package for modelling temperature-driven
+phenology and life-cycle development.
+
+The package provides:
+
+- Temperature-dependent development functions
+- Developmental variability functions
+- Chilling accumulation models
+- Cohort-based life-stage simulation
+- Daylength-dependent life stages
+- Population simulation tools
+- Visualisation functions
+- Example datasets and models
+
+The framework is designed for insects, plants, and other organisms whose
+development depends on environmental conditions.
 
 ## Installation
 
-``` r
-#remotes::install_github("agresearch/phenologysim")
-```
-
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
+Install the development version from GitHub:
 
 ``` r
-summary(cars)
-#>      speed           dist       
-#>  Min.   : 4.0   Min.   :  2.00  
-#>  1st Qu.:12.0   1st Qu.: 26.00  
-#>  Median :15.0   Median : 36.00  
-#>  Mean   :15.4   Mean   : 42.98  
-#>  3rd Qu.:19.0   3rd Qu.: 56.00  
-#>  Max.   :25.0   Max.   :120.00
+install.packages("remotes")
+
+remotes::install_github("John-Kean/phenologysim")
 ```
 
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this.
+Load the package:
 
-You can also embed plots, for example:
+``` r
+library(phenologysim)
+```
 
-<img src="man/figures/README-pressure-1.png" alt="" width="100%" />
+## Quick start
 
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
+Create some example environmental drivers:
+
+``` r
+drivers <- example_varying_drivers()
+```
+
+Run a population simulation:
+
+``` r
+results <- run_simulation(
+  population = example_lifestages,
+  initialise = c(eggs = 1000),
+  timestep = example_timestep,
+  drivers = drivers
+)
+```
+
+Plot the population trajectory:
+
+``` r
+plot_population_trajectory(
+  results[, c("date", "eggs", "larvae", "pupae", "adults")]
+)
+```
+
+## Development models
+
+The package includes a range of commonly-used phenology models:
+
+### Linear models
+
+- `calendar_development()`
+- `linear_development()`
+
+### Exponential models
+
+- `exponential_development()`
+- `expbase_development()`
+
+### Sigmoid models
+
+- `sigmoid_development()`
+
+### Gaussian models
+
+- `Gaussian_development()`
+
+### Logan models
+
+- `Logan1_development()`
+- `Logan2_development()`
+
+### Lactin models
+
+- `Lactin1_development()`
+- `Lactin2_development()`
+
+### Analytis models
+
+- `Analytis1_development()`
+- `Analytis2_development()`
+- `Analytis3_development()`
+- `AnalytisAllahyari_development()`
+
+### Briere models
+
+- `Briere1_development()`
+- `Briere2_development()`
+
+### Beta model
+
+- `Beta_development()`
+
+## Variability models
+
+To represent variation among individuals within a population:
+
+- `step_variability()`
+- `logistic_variability()`
+- `Regniere1_variability()`
+- `Regniere2_variability()`
+- `Weibull_variability()`
+- `cum_normal_variability()`
+
+## Life-stage modelling
+
+The package provides object-oriented S3 classes for modelling
+populations.
+
+### Standard life stage
+
+``` r
+larvae <- new_lifestage(
+  name = "Larvae",
+  devFunction = linear_development,
+  devParameters = list(b = 10, q = 200),
+  varFunction = cum_normal_variability,
+  varParameters = list(sd = 0.1)
+)
+```
+
+### Chilled life stage
+
+``` r
+eggs <- new_chilled_lifestage(
+  name = "Eggs",
+  devFunction = linear_development,
+  devParameters = list(b = 7.4, q = 428),
+  varFunction = cum_normal_variability,
+  varParameters = list(sd = 0.1),
+  chillFunction = linear_chill,
+  chillParameters = list(T_chill = 10),
+  chillResponse = function(chill) {
+    1 - 0.46 * exp(-0.0005 * chill)
+  }
+)
+```
+
+### Daylength-dependent life stage
+
+``` r
+diapause <- new_daylength_lifestage(
+  name = "Diapause",
+  Threshold = 13.5,
+  ReqTrend = 1,
+  Variation = 0.5
+)
+```
+
+## Environmental drivers
+
+Prepare environmental data for simulations:
+
+``` r
+driver_data <- prepare_drivers(weather_data)
+```
+
+Required columns include:
+
+| Column    | Description              |
+|-----------|--------------------------|
+| date      | Date                     |
+| Tmean     | Mean temperature (°C)    |
+| Tmin      | Minimum temperature (°C) |
+| Tmax      | Maximum temperature (°C) |
+| daylength | Daylength (hours)        |
+
+If daylength is not supplied, it can be calculated from latitude.
+
+## Example simulation
+
+Run the built-in example model:
+
+``` r
+example_phenology_simulation()
+```
+
+Or simulate multiple years:
+
+``` r
+example_phenology_simulation(length = 730)
+```
+
+## Plotting
+
+Visualise drivers:
+
+``` r
+plot_drivers(example_varying_drivers())
+```
+
+Visualise population trajectories:
+
+``` r
+plot_population_trajectory(results)
+```
+
+## References
+
+Many development functions are based on published phenology and insect
+development models, including:
+
+- Logan et al. (1976)
+- Régnière (1984)
+- Casagrande et al. (1987)
+- Logan (1988)
+- Brière et al. (1999)
+- Han et al. (2000)
+- Walgama & Zalucki (2006)
+- Mirhosseini et al. (2017)
+
+See individual function documentation for full citations.
+
+## Author
+
+**John Kean**  
+Bioeconomy Science Institute, New Zealand
+
+## License
+
+GPL-3
