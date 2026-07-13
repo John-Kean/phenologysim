@@ -1,0 +1,35 @@
+Package: phenologysim
+Type: Package
+Title: Phenology Simulation Modelling Framework
+Version: 0.1.0
+Authors@R:
+    person(
+      given = "John",
+      family = "Kean",
+      email = "john.kean@agresearch.co.nz",
+      role = c("aut", "cre")
+    )
+Description:
+    Functions and classes for phenology modelling,
+    including temperature-dependent development,
+    developmental variability, chilling accumulation,
+    life-stage simulation and population models.
+License: GPL-3
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 8.0.0
+Imports:
+    data.table,
+    dplyr,
+    tidyr,
+    ggplot2,
+    geosphere,
+    lubridate,
+    stats,
+    utils
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat
+LazyData: true
+VignetteBuilder: knitr

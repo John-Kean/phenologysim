@@ -1,0 +1,33 @@
+---
+title: "introduction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(phenologysim)
+
+drivers <- example_varying_drivers()
+
+results <- run_simulation(
+  population = example_lifestages,
+  initialise = c(eggs = 1000),
+  timestep = example_timestep,
+  drivers = drivers
+)
+
+plot_population_trajectory(
+  results[, c("date","eggs","larvae","pupae","adults")]
+)
+
+```
