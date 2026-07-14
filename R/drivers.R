@@ -69,7 +69,7 @@ prepare_daylengths <- function(data, latitude = NULL) {
     dplyr::select(date, daylength) |>
     dplyr::distinct() |>
     dplyr::mutate(prev_dl = lag(daylength, default = last(daylength))) |>
-    dplyr::mutate(daytrend = case_when(
+    dplyr::mutate(daytrend = dplyr::case_when(
       daylength > prev_dl ~  1,
       daylength < prev_dl ~ -1,
       TRUE                ~  0

@@ -6,6 +6,9 @@
 \usage{
 \method{print}{daylength_lifestage}(x)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+}
 \description{
 Print method for daylength_lifestage objects
 }

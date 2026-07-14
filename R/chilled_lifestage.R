@@ -4,7 +4,30 @@
 # Used when development rate depends on accumulated chilling below a threshold
 ################################################################################
 
-# Constructor
+#' Constructor
+#'
+#' @param name Name of the stage e.g. "Eggs"
+#' @param devFunction     The development function to use e.g. linear_development
+#' @param devParameters   Named list of parameters for the development function e.g. c(b = 10, q = 500)
+#' @param varFunction     The variability function to use e.g. cum_normal_variability
+#' @param varParameters   Named list of parameters for the variability function e.g. c(sd = 0.1)
+#' @param chillFunction   The chill accumulation function e.g. linear_chill
+#' @param chillParameters Named list of parameters for the variability function e.g. c(T_chill = 5)
+#' @param chillResponse   The function relating the cumulative chill to the relative development rate (0 to 1).
+#' @returns A chilled_lifestage object
+#' @export
+#' @examples
+#' eggs = new_chilled_lifestage(
+#'   name = "Eggs",
+#'   devFunction = linear_development,
+#'   devParameters = c(b = 7.4, q = 428),
+#'   varFunction = cum_normal_variability,
+#'   varParameters = c(sd = 0.1),
+#'   chillFunction = linear_chill,
+#'   chillParameters = c(T_chill = 13.9),
+#'   chillResponse = function(x) 1 - 0.46 * exp(-0.0005 * x)
+#' )
+#'
 new_chilled_lifestage <- function(
     name,
     devFunction,
@@ -48,7 +71,17 @@ new_chilled_lifestage <- function(
 }
 
 
-# Add a cohort
+#' Add a cohort to a chilled_lifestage
+#'
+#' @param x A chilled_lifestage object
+#' @param number (integer) The number of individuals in the cohort to be added
+#' @param cumDevelopment (double) Their prior development (default = 0)
+#' @param cumChill (double) Their prior chill accumulation (default = 0)
+#' @returns The updated chilled_lifestage object
+#' @export
+#' @examples
+#'   eggs <- eggs |> add_cohort(100)
+#'
 add_cohort.chilled_lifestage <- function(
     x,
     number,
@@ -78,7 +111,16 @@ add_cohort.chilled_lifestage <- function(
   x
 }
 
+
 #' Develop cohorts for one timestep
+#'
+#' @param x A chilled_lifestage object
+#' @param drivers A tibble row with degreesC, daylength, daytrend and dayfraction
+#' @returns The updated chilled_lifestage object
+#' @export
+#' @examples
+#'   eggs <- eggs |> develop(d)
+#'
 develop.chilled_lifestage <- function(x, drivers) {
 
   if (!nrow(x$cohorts)) {

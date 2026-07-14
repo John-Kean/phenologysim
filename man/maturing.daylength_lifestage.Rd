@@ -6,6 +6,12 @@
 \usage{
 \method{maturing}{daylength_lifestage}(x, ...)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+}
+\value{
+The number of individuals maturing in the current timestep
+}
 \description{
 Get total maturing from daylength_lifestage in the current timestep
 }

@@ -6,6 +6,18 @@
 \usage{
 \method{develop}{chilled_lifestage}(x, drivers)
 }
+\arguments{
+\item{x}{A chilled_lifestage object}
+
+\item{drivers}{A tibble row with degreesC, daylength, daytrend and dayfraction}
+}
+\value{
+The updated chilled_lifestage object
+}
 \description{
 Develop cohorts for one timestep
+}
+\examples{
+  eggs <- eggs |> develop(d)
+
 }

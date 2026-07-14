@@ -6,6 +6,14 @@
 \usage{
 \method{add_cohort}{daylength_lifestage}(x, number)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+
+\item{number}{The number of individuals in the cohort}
+}
+\value{
+A modified daylength_lifestage object
+}
 \description{
 Add a cohort to a daylength_lifestage
 }

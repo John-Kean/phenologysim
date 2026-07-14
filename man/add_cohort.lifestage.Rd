@@ -14,7 +14,7 @@
 \item{cumDevelopment}{(double) Their prior development (default = 0)}
 }
 \value{
-The updated lifestage
+The updated lifestage object
 }
 \description{
 Add a cohort to a lifestage

@@ -7,11 +7,12 @@
 
 #' Constructor for daylength diapausing life stage
 #'
-#' @param name The name of the stage e.g. "Diapausing eggs"
+#' @param name      The name of the stage e.g. "Diapausing eggs"
 #' @param Threshold The required daylength (in hours) for completing the stage (positive for increasing daylength, negative for decreasing)
-#' @param ReqTrend The required trend in daylength: 1 for increasing daylength, -1 for decreasing daylength
+#' @param ReqTrend  The required trend in daylength: 1 for increasing daylength, -1 for decreasing daylength
 #' @param Variation The variation around the threshold (in hours)
-#' @returns A dl_diapause_stage object
+#' @returns A daylength_lifestage object
+#' @export
 #'
 new_daylength_lifestage <- function(
     name,
@@ -36,6 +37,10 @@ new_daylength_lifestage <- function(
 
 
 #' Print method for daylength_lifestage objects
+#'
+#' @param x A daylength_lifestage object
+#' @export
+#'
 print.daylength_lifestage <- function(x) {
   cat(x$name, ":\n", sep = "")
   cat("\tDaylength threshold: ", x$dlThreshold, " hours\n", sep = "")
@@ -52,6 +57,12 @@ print.daylength_lifestage <- function(x) {
 
 
 #' Add a cohort to a daylength_lifestage
+#'
+#' @param x A daylength_lifestage object
+#' @param number The number of individuals in the cohort
+#' @returns A modified daylength_lifestage object
+#' @export
+#'
 add_cohort.daylength_lifestage <- function(x, number) {
   if(!is.na(number) && number > 0) {
     x$numberTotal <- x$numberTotal + as.integer(round(number))
@@ -61,6 +72,13 @@ add_cohort.daylength_lifestage <- function(x, number) {
 
 
 #' Apply survival to a daylength_lifestage
+#'
+#' @param x A daylength_lifestage object
+#' @param drivers The temperature drivers, containing the dayfraction
+#' @param survival The survival rate (proportion expected to survive /day)
+#' @returns A modified daylength_lifestage object
+#' @export
+#'
 survive.daylength_lifestage <- function(x, drivers, survival) {
   surv <- exp((survival - 1) * drivers$dayfraction)
   surv <- ifelse(is.na(surv), 0, surv)
@@ -72,6 +90,11 @@ survive.daylength_lifestage <- function(x, drivers, survival) {
 
 
 #' Kill all individuals in the daylength_lifestage
+#'
+#' @param x A daylength_lifestage object
+#' @returns A modified daylength_lifestage object
+#' @export
+#'
 kill_all.daylength_lifestage <- function(x) {
   x$numberMaturing <- 0
   x$numberTotal <- 0
@@ -81,6 +104,12 @@ kill_all.daylength_lifestage <- function(x) {
 
 
 #' Develop daylength_lifestage for one timestep
+#'
+#' @param x A daylength_lifestage object
+#' @param drivers The temperature and daylength drivers
+#' @returns A modified daylength_lifestage object
+#' @export
+#'
 develop.daylength_lifestage <- function(x, drivers) {
   x$numberMaturing <- 0L
   x$devToday <- 0
@@ -104,12 +133,22 @@ develop.daylength_lifestage <- function(x, drivers) {
 
 
 #' Get total maturing from daylength_lifestage in the current timestep
+#'
+#' @param x A daylength_lifestage object
+#' @returns The number of individuals maturing in the current timestep
+#' @export
+#'
 maturing.daylength_lifestage <- function(x, ...) {
   x$numberMaturing
 }
 
 
 #' Get total number in daylength_lifestage
+#'
+#' @param x A daylength_lifestage object
+#' @returns The total number of individuals in the lifestage
+#' @export
+#'
 total.daylength_lifestage <- function(x, ...) {
   x$numberTotal
 }

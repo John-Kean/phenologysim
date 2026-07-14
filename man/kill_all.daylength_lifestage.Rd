@@ -6,6 +6,12 @@
 \usage{
 \method{kill_all}{daylength_lifestage}(x)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+}
+\value{
+A modified daylength_lifestage object
+}
 \description{
 Kill all individuals in the daylength_lifestage
 }

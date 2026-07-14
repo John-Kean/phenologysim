@@ -8,13 +8,13 @@
 
 #' Constructor for lifestage object
 #'
-#' @param name Name of the stage e.g. "First instar larvae"
-#' @param devFunction Name of the development function to use e.g. "linear_development"
-#' @param varFunction Name of the variability function to use e.g. "cum_normal_variability"
+#' @param name          Name of the stage e.g. "First instar larvae"
+#' @param devFunction   The development function to use e.g. linear_development
 #' @param devParameters Named list of parameters for the development function e.g. c(b = 10, q = 500)
+#' @param varFunction   The variability function to use e.g. cum_normal_variability
 #' @param varParameters Named list of parameters for the variability function e.g. c(sd = 0.1)
 #' @returns A lifestage object
-#'
+#' @export
 #' @examples
 #' larvae = new_lifestage(
 #'   name = "Larvae",
@@ -116,7 +116,7 @@ print.lifestage <- function(x) {
 #' @param x A lifestage object
 #' @param number (integer) The number of individuals in the cohort to be added
 #' @param cumDevelopment (double) Their prior development (default = 0)
-#' @returns The updated lifestage
+#' @returns The updated lifestage object
 #' @export
 #' @examples
 #'   larvae <- larvae |> add_cohort(100)
@@ -149,7 +149,7 @@ add_cohort.lifestage <- function(
 #' @param x A lifestage object
 #' @param drivers Tibble including the dayfraction
 #' @param survival Survival rate /day
-#' @returns The updated lifestage
+#' @returns The updated lifestage object
 #' @export
 #' @examples
 #'   larvae <- larvae |> survive(0.99, d)
@@ -169,7 +169,7 @@ survive.lifestage <- function(
 #' Kill all individuals in the lifestage
 #'
 #' @param x A lifestage object
-#' @returns The updated lifestage
+#' @returns The updated lifestage object
 #' @export
 #' @examples
 #'   larvae <- larvae |> kill_all()
@@ -184,7 +184,7 @@ kill_all.lifestage <- function(x) {
 #'
 #' @param x A lifestage object
 #' @param drivers A tibble row with degreesC, daylength, daytrend and dayfraction
-#' @returns The updated lifestage
+#' @returns The updated lifestage object
 #' @export
 #' @examples
 #'   larvae <- larvae |> develop(d)
@@ -242,7 +242,7 @@ maturing.lifestage <- function(x, ...) {
 #'
 #' @param x A lifestage object
 #' @returns The total number of individuals in that lifestage, across all cohorts
-@export
+#' @export
 #' @examples
 #'   total(larvae)
 #'
