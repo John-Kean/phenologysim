@@ -129,7 +129,7 @@ add_cohort.lifestage <- function(
   if (is.na(number) || number <= 0) return(x)
   p <- x$var_fun(cumDevelopment)
   n <- as.integer(round(number))
-  x$cohorts <- rbindlist(list(
+  x$cohorts <- data.table::rbindlist(list(
     x$cohorts,
     data.table::data.table(
       StartNumber = n,

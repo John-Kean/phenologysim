@@ -63,7 +63,7 @@ new_chilled_lifestage <- function(
   x$chill_response <- chillResponse
 
   # Extend cohort table
-  x$cohorts[, CumChill := numeric()]
+  x$cohorts[, CumChill := numeric(nrow(x$cohorts))]
   x$chillToday <- 0
 
   class(x) <- c("chilled_lifestage", class(x))
@@ -95,7 +95,7 @@ add_cohort.chilled_lifestage <- function(
   p <- x$var_fun(cumDevelopment)
   n <- as.integer(round(number))
 
-  x$cohorts <- rbindlist(list(
+  x$cohorts <- data.table::rbindlist(list(
     x$cohorts,
     data.table::data.table(
       StartNumber    = n,

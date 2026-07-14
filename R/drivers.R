@@ -7,6 +7,7 @@
 #'
 #' @param data A data frame with columns for date and optionally Tmin, Tmax and/or Tmean
 #' @returns A data frame with columns for date, dayfraction and degreesC
+#' @export
 #'
 prepare_temperatures <- function(data) {
 
@@ -49,6 +50,7 @@ prepare_temperatures <- function(data) {
 #'
 #' @param data A data frame with columns for date and daylength
 #' @returns A data frame with columns for date, daylength and daytrend (1 if daylength is increasing, -1 if it is decreasing)
+#' @export
 #'
 prepare_daylengths <- function(data, latitude = NULL) {
 
@@ -85,6 +87,7 @@ prepare_daylengths <- function(data, latitude = NULL) {
 #'
 #' @param data A data frame with columns for date, temperature and daylength
 #' @returns A data frame with columns for date, dayfraction, degreesC, daylength and daytrend
+#' @export
 #'
 prepare_drivers <- function(data, ...) {
   data |>
@@ -98,7 +101,7 @@ prepare_drivers <- function(data, ...) {
 #'
 #' @param driver_data A data frame with columns for date, dayfraction, degreesC, daylength and daytrend
 #' @returns A ggplot graph
-#'
+#' @export
 #' @examples
 #' plot_drivers(example_varying_drivers())
 #'

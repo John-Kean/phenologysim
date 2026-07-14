@@ -191,6 +191,20 @@ A whole set of life stages can be set up as a named list.
 
 ```{r example-life-stages}
 
+
+eggs <- new_chilled_lifestage(
+  name = "Eggs",
+  devFunction = linear_development,
+  devParameters = list(b = 7.4, q = 428),
+  varFunction = cum_normal_variability,
+  varParameters = list(sd = 0.1),
+  chillFunction = linear_chill,
+  chillParameters = list(T_chill = 10),
+  chillResponse = function(cumChill) { 1 - 0.46 * exp(-0.0005 * cumChill) }
+)
+
+
+
 example_lifestages <- list(
 
   eggs = new_chilled_lifestage(
@@ -206,14 +220,14 @@ example_lifestages <- list(
 
   larvae = new_lifestage(
     name = "Larvae",
-    devFunction = Briere2_development,
+    devFunction = briere2_development,
     devParameters = list(
       T0 = 12,
       Tu = 33,
       a = 4.7e-5,
       b = 4.2
     ),
-    varFunction = Weibull_variability,
+    varFunction = weibull_variability,
     varParameters = list(a = 0.8, c = 3)
   ),
 
@@ -278,15 +292,7 @@ example_timestep <- function(
 
 # Generic simulation engine
 
-The package offers an optional generic simulation engine:
-
-```{r}
-
-run_simulation()
-
-```
-
-The user supplies:
+The package offers an optional generic simulation engine, `run_simulation()`. The user supplies:
 
 - a population definition
 - initial population sizes
@@ -298,54 +304,18 @@ The bundled example model implements a complete insect life cycle.
 
 # Running the example simulation
 
-First create the driver data:
-
-```{r}
-
-drivers <- example_varying_drivers()
-
-```
-
-Run the simulation:
-
 ```{r run-simulation}
 
 set.seed(123)
 
-results <- run_simulation(
-  population = example_lifestages,
-  initialise = c(eggs = 1000),
-  timestep = example_timestep,
-  drivers = drivers
-)
-
-head(results)
-
-```
-
-
-
-```{r}
-
-example_phenology_simulation <- function(length = 365) {
-  set.seed(123)
-  run_simulation(
-    population   = example_lifestages,
-    initialise   = c(eggs = 1000),
-    timestep     = example_timestep,
-    drivers      = example_varying_drivers(length = length),
-    survival = c(
-      eggs   = 0.999,
-      larvae = 0.99,
-      pupae  = 0.99,
-      adults = 0.9
-    ),
-    fecundity = 0.2,
-    verbose = TRUE
-  ) |>
-    dplyr::select(date, eggs:adults) |>
-    plot_population_trajectory()
-}
+# results <- run_simulation(
+#   population = example_lifestages,
+#   initialise = c(eggs = 1000),
+#   timestep = example_timestep,
+#   drivers = drivers
+# )
+# 
+# head(results)
 
 ```
 
@@ -357,9 +327,9 @@ The trajectory of each life stage can be visualised using:
 
 ```{r, fig.height=5}
 
-plot_population_trajectory(
-  results[, c("date", "eggs", "larvae", "pupae", "adults")]
-)
+# plot_population_trajectory(
+#   results[, c("date", "eggs", "larvae", "pupae", "adults")]
+# )
 
 ```
 
@@ -369,10 +339,10 @@ A line plot may also be used:
 
 ```{r, eval = FALSE}
 
-plot_population_trajectory(
-  results[, c("date", "eggs", "larvae", "pupae", "adults")],
-  type = "line"
-)
+# plot_population_trajectory(
+#   results[, c("date", "eggs", "larvae", "pupae", "adults")],
+#   type = "line"
+# )
 
 ```
 

@@ -11,9 +11,8 @@
 #' @param drivers    (dataframe) with columns for date, dayfraction, degreesC, daylength and daytrend
 #' @param verbose    (boolean)   whether to print progress
 #' @param ...                    additional parameters required by the timestep function
-#'
 #' @returns (dataframe) drivers with JulianDate, days_passed and life stage totals added as new columns
-#'
+#' @export
 #' @examples
 #' results <- run_simulation(
 #'   population = example_lifestages,
@@ -83,6 +82,7 @@ run_simulation <- function(population, initialise, timestep, drivers, verbose = 
 #'
 #' @param pop A list of lifestage objects
 #' @returns Numeric sum of all total(lifestage)
+#' @export
 #'
 total_population <- function(pop) {
   sum(sapply(pop, total), na.rm = TRUE)
@@ -94,6 +94,7 @@ total_population <- function(pop) {
 #'
 #' @param pop A list of lifestage objects
 #' @returns Updated list of lifestage objects
+#' @export
 #'
 eradicate_population <- function(pop) {
   lapply(pop, \(x) if (is.null(x)) x else kill_all(x))
@@ -107,6 +108,7 @@ eradicate_population <- function(pop) {
 #' @param type The plot type: either "area" (default) or "line"
 #' @param x_label The label for the x-axis
 #' @returns A plot of the simulation results
+#' @export
 #'
 plot_population_trajectory <- function(population_data, type = "area", x_label = "") {
   x_col <- colnames(population_data)[1]
