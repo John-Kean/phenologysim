@@ -16,7 +16,7 @@ new_daylength_lifestage(name, Threshold, ReqTrend, Variation)
 \item{Variation}{The variation around the threshold (in hours)}
 }
 \value{
-A dl_diapause_stage object
+A daylength_lifestage object
 }
 \description{
 Constructor for daylength diapausing life stage

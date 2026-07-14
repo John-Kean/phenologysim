@@ -6,6 +6,14 @@
 \usage{
 \method{develop}{daylength_lifestage}(x, drivers)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+
+\item{drivers}{The temperature and daylength drivers}
+}
+\value{
+A modified daylength_lifestage object
+}
 \description{
 Develop daylength_lifestage for one timestep
 }

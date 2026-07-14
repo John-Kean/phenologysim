@@ -12,7 +12,7 @@
 \item{drivers}{A tibble row with degreesC, daylength, daytrend and dayfraction}
 }
 \value{
-The updated lifestage
+The updated lifestage object
 }
 \description{
 Develop cohorts for one timestep

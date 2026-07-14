@@ -6,6 +6,12 @@
 \usage{
 \method{total}{daylength_lifestage}(x, ...)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+}
+\value{
+The total number of individuals in the lifestage
+}
 \description{
 Get total number in daylength_lifestage
 }

@@ -6,6 +6,16 @@
 \usage{
 \method{survive}{daylength_lifestage}(x, drivers, survival)
 }
+\arguments{
+\item{x}{A daylength_lifestage object}
+
+\item{drivers}{The temperature drivers, containing the dayfraction}
+
+\item{survival}{The survival rate (proportion expected to survive /day)}
+}
+\value{
+A modified daylength_lifestage object
+}
 \description{
 Apply survival to a daylength_lifestage
 }

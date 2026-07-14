@@ -7,7 +7,7 @@
 \method{print}{lifestage}(x)
 }
 \arguments{
-\item{x}{lifestage object}
+\item{x}{A lifestage object}
 }
 \description{
 Print method for lifestage objects

@@ -14,7 +14,7 @@
 \item{survival}{Survival rate /day}
 }
 \value{
-The updated lifestage
+The updated lifestage object
 }
 \description{
 Apply survival to all cohorts in the lifestage

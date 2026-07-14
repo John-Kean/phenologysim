@@ -6,6 +6,9 @@
 \usage{
 \method{total}{lifestage}(x, ...)
 }
+\arguments{
+\item{x}{A lifestage object}
+}
 \value{
 The total number of individuals in that lifestage, across all cohorts
 }

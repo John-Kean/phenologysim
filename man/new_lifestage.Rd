@@ -15,11 +15,11 @@ new_lifestage(
 \arguments{
 \item{name}{Name of the stage e.g. "First instar larvae"}
 
-\item{devFunction}{Name of the development function to use e.g. "linear_development"}
+\item{devFunction}{The development function to use e.g. linear_development}
 
 \item{devParameters}{Named list of parameters for the development function e.g. c(b = 10, q = 500)}
 
-\item{varFunction}{Name of the variability function to use e.g. "cum_normal_variability"}
+\item{varFunction}{The variability function to use e.g. cum_normal_variability}
 
 \item{varParameters}{Named list of parameters for the variability function e.g. c(sd = 0.1)}
 }

@@ -25,3 +25,12 @@ run_simulation(population, initialise, timestep, drivers, verbose = FALSE, ...)
 \description{
 Run a simulation (generic handler)
 }
+\examples{
+results <- run_simulation(
+  population = example_lifestages,
+  initialise = c(eggs = 1000),
+  timestep   = example_timestep,
+  drivers    = driver_data
+)
+
+}

@@ -111,19 +111,32 @@ eradicate_population <- function(pop) {
 plot_population_trajectory <- function(population_data, type = "area", x_label = "") {
   x_col <- colnames(population_data)[1]
   stages <- colnames(population_data)[-1]
-  if (x_label == "") x_label <- str_to_sentence(gsub("_", " ", x_col))
+  if (x_label == "") x_label <- stringr::str_to_sentence(gsub("_", " ", x_col))
   population_data |>
     tidyr::pivot_longer(
-      cols = all_of(stages),
+      cols = tidyselect::all_of(stages),
       names_to = "Lifestage",
       values_to = "Population"
     ) |>
     dplyr::mutate(Lifestage = factor(Lifestage, levels = stages)) |>  # sort into the right order
-    ggplot2::ggplot(ggplot2::aes(x = .data[[x_col]], y = Population)) +
-    {if(type == "area") ggplot2::geom_area(aes(fill = Lifestage))} +
-    {if(type == "line") ggplot2::geom_line(aes(colour = Lifestage), linewidth = 1)} +
-    xlab(x_label) +
-    theme_classic()
+    ggplot2::ggplot(
+      ggplot2::aes(x = .data[[x_col]], y = Population)
+    ) +
+    {
+      if(type == "area")
+        ggplot2::geom_area(
+          ggplot2::aes(fill = Lifestage)
+        )
+    } +
+    {
+      if(type == "line")
+        ggplot2::geom_line(
+          ggplot2::aes(colour = Lifestage),
+          linewidth = 1
+        )
+    } +
+    ggplot2::xlab(x_label) +
+    ggplot2::theme_classic()
 }
 
 

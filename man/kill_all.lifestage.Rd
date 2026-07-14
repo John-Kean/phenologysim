@@ -10,7 +10,7 @@
 \item{x}{A lifestage object}
 }
 \value{
-The updated lifestage
+The updated lifestage object
 }
 \description{
 Kill all individuals in the lifestage

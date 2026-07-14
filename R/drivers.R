@@ -69,7 +69,7 @@ prepare_daylengths <- function(data, latitude = NULL) {
     dplyr::select(date, daylength) |>
     dplyr::distinct() |>
     dplyr::mutate(prev_dl = lag(daylength, default = last(daylength))) |>
-    dplyr::mutate(daytrend = case_when(
+    dplyr::mutate(daytrend = dplyr::case_when(
       daylength > prev_dl ~  1,
       daylength < prev_dl ~ -1,
       TRUE                ~  0
@@ -105,20 +105,37 @@ prepare_drivers <- function(data, ...) {
 plot_drivers <- function(driver_data) {
   driver_data |>
     dplyr::mutate(date = as.Date(date)) |>
-    group_by(date) |>
-    summarise(Tmin = min(degreesC), Tmax = max(degreesC), Tmean = median(degreesC), daylength = mean(daylength)) |>
+    dplyr::group_by(date) |>
+    dplyr::summarise(
+      Tmin = min(degreesC),
+      Tmax = max(degreesC),
+      Tmean = median(degreesC),
+      daylength = mean(daylength)
+    ) |>
     tidyr::pivot_longer(
       cols = c(Tmin, Tmax, Tmean),
       names_to = "Datum",
       values_to = "Temperature"
     ) |>
     ggplot2::ggplot(ggplot2::aes(x = date)) +
-      ggplot2::geom_line(aes(y = Temperature, colour = Datum), linewidth = 0.5) +
-      ggplot2::geom_line(aes(y = (daylength - 6) * 30 / 12), linewidth = 1.2, colour = "darkgrey") +
-      scale_y_continuous(name = "Temperature (°C)", sec.axis = sec_axis(~ . * 12 / 30 + 6, name = "Daylength (h)")) +
-      xlab("Date") +
-      labs(colour = "") +
-      theme_classic()
+      ggplot2::geom_line(
+        ggplot2::aes(y = Temperature, colour = Datum),
+        linewidth = 0.5
+      ) +
+      ggplot2::geom_line(
+        ggplot2::aes(y = (daylength - 6) * 30 / 12),
+        linewidth = 1.2,
+        colour = "darkgrey"
+      ) +
+      ggplot2::scale_y_continuous(
+        name = "Temperature (°C)",
+        sec.axis = ggplot2::sec_axis(~ . * 12 / 30 + 6, name = "Daylength (h)")
+      ) +
+      ggplot2::labs(
+        x = "Date",
+        colour = ""
+      ) +
+      ggplot2::theme_classic()
 }
 
 

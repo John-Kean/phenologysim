@@ -6,6 +6,9 @@
 \usage{
 \method{maturing}{lifestage}(x, ...)
 }
+\arguments{
+\item{x}{A lifestage object}
+}
 \value{
 The number maturing from this lifestage in the current timestep
 }

@@ -1,23 +1,316 @@
 ---
-title: "introduction"
+title: "Introduction to phenologysim"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{introduction}
+  %\VignetteIndexEntry{Introduction to phenologysim}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
 ```
 
+# Introduction
+
+`phenologysim` is an R package for modelling phenology and population dynamics in organisms whose development depends on environmental conditions.
+
 ```{r setup}
+
+# remotes::install_github("John-Kean/phenologysim")
+
 library(phenologysim)
 
+```
+
+The package provides:
+
+- Temperature-dependent development models
+- Developmental variability models
+- Chilling-dependent development
+- Daylength-dependent life stages
+- Cohort-based population simulation
+- Visualisation tools
+- Example models and datasets
+
+Although originally developed for insect phenology modelling, the framework can be applied to any organism where progression through life stages depends on temperature, time, chilling accumulation or photoperiod.
+
+
+# Core concepts
+
+A phenology simulation in `phenologysim` consists of four main components:
+
+1. **Environmental drivers** such as temperature and daylength.
+2. **Life stages** such as eggs, larvae, pupae and adults.
+3. **A timestep function** describing transitions between life stages.
+4. **A simulation engine** that applies the timestep repeatedly through time.
+
+The package includes helper functions for each of these components.
+
+
+# Environmental drivers
+
+Environmental conditions are provided as a driver data frame containing:
+
+- date
+- dayfraction
+- degreesC
+- daylength
+- daytrend
+
+If daily min/max/mean temperatures are provided, these can be converted to the required format using `prepare_drivers()`.
+
+```{r create-drivers}
+
+# Specify daily min/max/mean temperatures
+cos <- 5 * cos(seq(0, 2 * pi, length.out = 365))
+drivers_raw <- data.frame(
+  date = seq.Date(as.Date("2020-07-01"), by = "day", length.out = 365),
+  Tmin  = rnorm(365, mean = 10 - cos, sd = 1),
+  Tmax  = rnorm(365, mean = 20 - cos, sd = 1),
+  Tmean = rnorm(365, mean = 15 - cos, sd = 1)
+) |>
+  dplyr::mutate(daylength = geosphere::daylength(lat = -37.44, doy = lubridate::yday(date)))
+
+# Convert to required format
+drivers <- prepare_drivers(drivers_raw)
+head(drivers)
+
+```
+
+The generated data contain seasonal variation in both temperature and daylength.
+
+```{r plot-drivers}
+
+plot_drivers(drivers)
+
+```
+
+
+# Life stages
+
+Life stages are represented as S3 objects.
+
+A typical stage consists of:
+
+- a development model
+- development parameters
+- a variability model
+- variability parameters
+
+For example:
+
+```{r create-larvae}
+
+# Create lifestage for larvae
+larvae <- new_lifestage(
+  name = "Larvae",
+  devFunction = linear_development,
+  devParameters = list(
+    b = 10,
+    q = 200
+  ),
+  varFunction = cum_normal_variability,
+  varParameters = list(
+    sd = 0.1
+  )
+)
+
+larvae
+
+```
+
+A life stage may contain multiple cohorts of different ages and developmental states.
+
+## Development models
+
+Many development models are available.
+
+For example, a simple linear degree-day model:
+
+```{r fig-linear-development}
+
+curve(
+  linear_development(x, b = 10, q = 200),
+  from = 0,
+  to = 35,
+  xlab = "Temperature (°C)",
+  ylab = "Development rate (/d)"
+)
+
+```
+
+More complex nonlinear models are also available, including:
+
+- beta_development()
+- briere1_development()
+- briere2_development()
+- gaussian_development()
+- lactin1_development()
+- lactin2_development()
+- logan1_development()
+- logan2_development()
+- sigmoid_development()
+
+
+## Variability models
+
+Development is rarely identical among individuals.
+
+Variability functions convert accumulated development into the proportion of a population that has completed a stage.
+
+For example:
+
+```{r fig-cum-normal-variability}
+
+curve(
+  cum_normal_variability(x, sd = 0.1),
+  from = 0.5,
+  to = 1.5,
+  xlab = "Relative development",
+  ylab = "Proportion of population completed"
+)
+
+```
+
+Alternative variability functions include:
+
+- logistic_variability()
+- regniere1_variability()
+- regniere2_variability()
+- step_variability()
+- weibull_variability()
+
+
+A whole set of life stages can be set up as a named list.
+
+```{r example-life-stages}
+
+example_lifestages <- list(
+
+  eggs = new_chilled_lifestage(
+    name = "Eggs",
+    devFunction = linear_development,
+    devParameters = list(b = 7.4, q = 428),
+    varFunction = cum_normal_variability,
+    varParameters = list(sd = 0.1),
+    chillFunction = linear_chill,
+    chillParameters = list(T_chill = 10),
+    chillResponse = function(cumChill) { 1 - 0.46 * exp(-0.0005 * cumChill) }
+  ),
+
+  larvae = new_lifestage(
+    name = "Larvae",
+    devFunction = Briere2_development,
+    devParameters = list(
+      T0 = 12,
+      Tu = 33,
+      a = 4.7e-5,
+      b = 4.2
+    ),
+    varFunction = Weibull_variability,
+    varParameters = list(a = 0.8, c = 3)
+  ),
+
+  pupae = new_lifestage(
+    name = "Pupae",
+    devFunction = linear_development,
+    devParameters = list(b = 10, q = 200),
+    varFunction = cum_normal_variability,
+    varParameters = list(sd = 0.1)
+  ),
+
+  adults = new_lifestage(
+    name = "Adults",
+    devFunction = calendar_development,
+    devParameters = list(Q = 14),
+    varFunction = cum_normal_variability,
+    varParameters = list(sd = 0.1)
+  )
+)
+
+```
+
+
+# Population processes
+
+Authors can 
+
+```{r}
+
+example_timestep <- function(
+  population,
+  drivers,
+  survival = c(
+    eggs   = 0.999,
+    larvae = 0.99,
+    pupae  = 0.99,
+    adults = 0.9
+  ),
+  fecundity = 0.2) {
+
+  p <- population
+  d <- drivers
+
+  # Survival and development
+  p$eggs   <- p$eggs   |> survive(d, survival["eggs"])   |> develop(d)
+  p$larvae <- p$larvae |> survive(d, survival["larvae"]) |> develop(d)
+  p$pupae  <- p$pupae  |> survive(d, survival["pupae"])  |> develop(d)
+  p$adults <- p$adults |> survive(d, survival["adults"]) |> develop(d)
+
+  # Stages mature
+  p$eggs   <- p$eggs   |> add_cohort(rpois(1, total(p$adults) * fecundity))
+  p$larvae <- p$larvae |> add_cohort(maturing(p$eggs))
+  p$pupae  <- p$pupae  |> add_cohort(maturing(p$larvae))
+  p$adults <- p$adults |> add_cohort(maturing(p$pupae))
+
+  p
+}
+
+
+```
+
+
+# Generic simulation engine
+
+The package offers an optional generic simulation engine:
+
+```{r}
+
+run_simulation()
+
+```
+
+The user supplies:
+
+- a population definition
+- initial population sizes
+- a timestep function
+- environmental drivers
+
+The bundled example model implements a complete insect life cycle.
+
+
+# Running the example simulation
+
+First create the driver data:
+
+```{r}
+
 drivers <- example_varying_drivers()
+
+```
+
+Run the simulation:
+
+```{r run-simulation}
+
+set.seed(123)
 
 results <- run_simulation(
   population = example_lifestages,
@@ -26,8 +319,90 @@ results <- run_simulation(
   drivers = drivers
 )
 
+head(results)
+
+```
+
+
+
+```{r}
+
+example_phenology_simulation <- function(length = 365) {
+  set.seed(123)
+  run_simulation(
+    population   = example_lifestages,
+    initialise   = c(eggs = 1000),
+    timestep     = example_timestep,
+    drivers      = example_varying_drivers(length = length),
+    survival = c(
+      eggs   = 0.999,
+      larvae = 0.99,
+      pupae  = 0.99,
+      adults = 0.9
+    ),
+    fecundity = 0.2,
+    verbose = TRUE
+  ) |>
+    dplyr::select(date, eggs:adults) |>
+    plot_population_trajectory()
+}
+
+```
+
+The output contains both environmental variables and life-stage abundances through time.
+
+## Visualising population dynamics
+
+The trajectory of each life stage can be visualised using:
+
+```{r, fig.height=5}
+
 plot_population_trajectory(
-  results[, c("date","eggs","larvae","pupae","adults")]
+  results[, c("date", "eggs", "larvae", "pupae", "adults")]
 )
 
 ```
+
+This shows the seasonal dynamics generated by the example model.
+
+A line plot may also be used:
+
+```{r, eval = FALSE}
+
+plot_population_trajectory(
+  results[, c("date", "eggs", "larvae", "pupae", "adults")],
+  type = "line"
+)
+
+```
+
+
+# Custom models
+
+The package is designed to allow users to construct their own models.
+
+Typical steps are:
+
+1. Prepare environmental driver data.
+2. Define one or more life stages.
+3. Specify development and variability functions.
+4. Write a custom timestep function.
+5. Run simulations with `run_simulation()`.
+
+Because development models, variability models and life-stage definitions are modular, they can be combined in many different ways.
+
+
+# Further information
+
+See the help pages for:
+
+```r
+?new_lifestage
+?new_chilled_lifestage
+?run_simulation
+?prepare_drivers
+?linear_development
+?cum_normal_variability
+```
+
+for full details of the modelling framework.
