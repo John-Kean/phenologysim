@@ -5,30 +5,25 @@
 
 #' Run a simulation (generic handler)
 #'
-#' @param population (function)  function that creates a list of population life stage objects
-#' @param initialise (list)      initial values for non-zero life stages
-#' @param timestep   (function)  function used for the timestep
-#' @param drivers    (dataframe) with columns for date, dayfraction, degreesC, daylength and daytrend
-#' @param verbose    (boolean)   whether to print progress
-#' @param ...                    additional parameters required by the timestep function
-#' @returns (dataframe) drivers with JulianDate, days_passed and life stage totals added as new columns
+#' @param population A list of population life stage objects
+#' @param timestep The function used for the timestep
+#' @param drivers A dataframe with columns for date, dayfraction, degreesC, daylength and daytrend
+#' @param verbose Boolean whether to print progress
+#' @param ... Additional parameters required by the timestep function
+#' @returns A dataframe with drivers, JulianDate, days_passed and life stage totals
 #' @export
 #' @examples
 #' results <- run_simulation(
 #'   population = example_lifestages,
-#'   initialise = c(eggs = 1000),
 #'   timestep   = example_timestep,
 #'   drivers    = driver_data
 #' )
 #'
-run_simulation <- function(population, initialise, timestep, drivers, verbose = FALSE, ...) {
+run_simulation <- function(population, timestep, drivers, verbose = FALSE, ...) {
 
   # Initialise population
-  pop <- population()
+  pop <- population
   stage_names <- names(pop)
-  for (stage in names(initialise)) {
-    pop[[stage]] <- add_cohort(pop[[stage]], initialise[[stage]])
-  }
 
   # Set up results
   results <- drivers |>

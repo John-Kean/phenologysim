@@ -63,7 +63,7 @@ new_chilled_lifestage <- function(
   x$chill_response <- chillResponse
 
   # Extend cohort table
-  x$cohorts[, CumChill := numeric(nrow(x$cohorts))]
+  x$cohorts$CumChill <- numeric(nrow(x$cohorts))
   x$chillToday <- 0
 
   class(x) <- c("chilled_lifestage", class(x))

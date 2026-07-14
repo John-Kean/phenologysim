@@ -4,23 +4,21 @@
 \alias{run_simulation}
 \title{Run a simulation (generic handler)}
 \usage{
-run_simulation(population, initialise, timestep, drivers, verbose = FALSE, ...)
+run_simulation(population, timestep, drivers, verbose = FALSE, ...)
 }
 \arguments{
-\item{population}{(function)  function that creates a list of population life stage objects}
+\item{population}{A list of population life stage objects}
 
-\item{initialise}{(list)      initial values for non-zero life stages}
+\item{timestep}{The function used for the timestep}
 
-\item{timestep}{(function)  function used for the timestep}
+\item{drivers}{A dataframe with columns for date, dayfraction, degreesC, daylength and daytrend}
 
-\item{drivers}{(dataframe) with columns for date, dayfraction, degreesC, daylength and daytrend}
+\item{verbose}{Boolean whether to print progress}
 
-\item{verbose}{(boolean)   whether to print progress}
-
-\item{...}{additional parameters required by the timestep function}
+\item{...}{Additional parameters required by the timestep function}
 }
 \value{
-(dataframe) drivers with JulianDate, days_passed and life stage totals added as new columns
+A dataframe with drivers, JulianDate, days_passed and life stage totals
 }
 \description{
 Run a simulation (generic handler)
@@ -28,7 +26,6 @@ Run a simulation (generic handler)
 \examples{
 results <- run_simulation(
   population = example_lifestages,
-  initialise = c(eggs = 1000),
   timestep   = example_timestep,
   drivers    = driver_data
 )
