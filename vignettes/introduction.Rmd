@@ -21,8 +21,6 @@ set.seed(1234)
 
 ```
 
-# Introduction
-
 `phenologysim` is an R package for modelling phenology and population dynamics in insects and other organisms whose development depends on environmental conditions.
 
 The package is available on GitHub at https://github.com/John-Kean/phenologysim and can be installed by calling `remotes::install_github("John-Kean/phenologysim")`.
@@ -118,13 +116,13 @@ A typical life stage specifies:
 
 For example:
 
-```{r demo-create-larvae}
-larvae <- new_lifestage(
-  name = "Larvae",
+```{r demo-new-lifestage}
+instar1 <- new_lifestage(
+  name = "First instar larvae",
   devFunction = linear_development,
   devParameters = list(
     b = 10,   # base temperature required for development (°C)
-    q = 200   # day degrees required to complete the life stage (°d)
+    q = 100   # day degrees required to complete the life stage (°d)
   ),
   varFunction = cum_normal_variability,
   varParameters = list(
@@ -132,7 +130,7 @@ larvae <- new_lifestage(
   )
 )
 
-larvae
+instar1
 
 ```
 
@@ -142,48 +140,67 @@ To add a cohort, use `add_cohort()`:
 
 ```{r demo-add-cohort}
 # Add a cohort of 1200 individuals
-larvae <- add_cohort(larvae, 1200)
+instar1 <- add_cohort(instar1, 1200)
 
 # Add another cohort of 34 individuals who have completed 50% of their development
-larvae <- add_cohort(larvae, 34, cumDevelopment = 0.5)
+instar1 <- add_cohort(instar1, 34, cumDevelopment = 0.5)
 
-larvae
+instar1
 
 ```
 
 To see the total number of individuals in that life stage use `total()`:
 
 ```{r demo-total}
-total(larvae)
+total(instar1)
 
 ```
+
+## Survival and mortality
 
 To implement mortality or survival, use `survive()`. For a one-off mortality event just specify the survival proportion:
 
 ```{r demo-survive}
-larvae <- survive(larvae, 0.9)  # Implement 10% mortality
+instar1 <- survive(instar1, 0.9)  # Implement 10% mortality
 
-total(larvae)
+total(instar1)
 
 ```
 
 Note that binomial rounding is used to maintain integer population sizes and introduce demographic stochasticity. Therefore, `survive()` and similar functions will not always give the same result.
 
 ```{r demo-stochasticity}
-total(survive(larvae, 0.9))
-total(survive(larvae, 0.9))
-total(survive(larvae, 0.9))
+total(survive(instar1, 0.9))
+total(survive(instar1, 0.9))
+total(survive(instar1, 0.9))
+total(survive(instar1, 0.9))
+total(survive(instar1, 0.9))
+
+```
+
+Using `survive()` in this way implements an instant mortality. Often, mortality should be a more gradual process. If survival is to be implemented as a gradual rate, then it needs to be scaled for the length of the timestep by passing **day_fraction** (between 0 and 1) to the function:
+
+```{r demo-scaled-survival}
+# Apply survival at a rate of 0.9 /day across a period of 0.25 days (6 hours)
+instar1 <- survive(instar1, 0.9, day_fraction = 0.25)
+
+total(instar1)
+
+```
+
+It is also possible to remove all individuals from a life stage using `kill_all()`:
+
+```{r demo-kill-all}
+instar1 <- kill_all(instar1)
+
+total(instar1)
 
 ```
 
 
-
-
 ## Development models
 
-Many development models are available.
-
-For example, a simple linear degree-day model:
+Many development models are available. For example, a simple linear degree-day model:
 
 ```{r fig-linear-development}
 curve(
@@ -196,7 +213,20 @@ curve(
 
 ```
 
-More complex nonlinear models are also available, including:
+or a non-linear Lactin model:
+
+```{r fig-lactin2-development}
+curve(
+  lactin2_development(x, rho = 0.15, Tu = 33, delta = 6.4, lambda = -0.3),
+  from = 0,
+  to = 35,
+  xlab = "Temperature (°C)",
+  ylab = "Development rate (/d)"
+)
+
+```
+
+Many other development rate models are available, including:
 
 - beta_development()
 - briere1_development()
@@ -208,12 +238,7 @@ More complex nonlinear models are also available, including:
 - logan2_development()
 - sigmoid_development()
 
-
-## Variability models
-
-Development is rarely identical among individuals.
-
-Variability functions convert accumulated development into the proportion of a population that has completed a stage.
+Variability in development is handled explicitly, using functions which relate accumulated development to the proportion of a population that has completed a stage.
 
 For example:
 
@@ -228,7 +253,7 @@ curve(
 
 ```
 
-Alternative variability functions include:
+Other variability functions include:
 
 - logistic_variability()
 - regniere1_variability()
@@ -236,8 +261,45 @@ Alternative variability functions include:
 - step_variability()
 - weibull_variability()
 
+Life stage development is implemented by calling `develop()` for each life stage exactly once per timestep, passing the environmental drivers for that step. This calculates how many individuals should mature from that timestep and removes them from the cohort.
 
-A whole set of life stages can be set up as a named list.
+```{r demo-development}
+instar1 <- add_cohort(instar1, 1000, cumDevelopment = 0.95)
+
+instar1 <- develop(instar1, drivers[180, ])
+
+instar1
+
+```
+
+The maturing individuals are then available through `maturing()` to be added to the next life stage using `add_cohort()`.
+
+```{r demo-maturation}
+instar2 <- new_lifestage(
+  name = "Second instar larvae",
+  devFunction = linear_development,
+  devParameters = list(
+    b = 10,  # base temperature required for development (°C)
+    q = 50   # day degrees required to complete the life stage (°d)
+  ),
+  varFunction = cum_normal_variability,
+  varParameters = list(
+    sd = 0.1  # standard deviation in relative developmental requirement (mean = 1)
+  )
+)
+
+new_instar2 <- maturing(instar1)
+
+instar2 <- add_cohort(instar2, new_instar2)
+
+instar2
+
+```
+
+
+# Simulating populations
+
+It is often useful to set up a whole series of life stages at once, saving them as a named list.
 
 ```{r example-life-stages}
 example_lifestages <- list(
@@ -245,11 +307,18 @@ example_lifestages <- list(
   eggs = new_chilled_lifestage(
     name = "Eggs",
     devFunction = linear_development,
-    devParameters = list(b = 7.4, q = 428),
+    devParameters = list(
+      b = 7.4,
+      q = 428
+    ),
     varFunction = cum_normal_variability,
-    varParameters = list(sd = 0.1),
+    varParameters = list(
+      sd = 0.1
+    ),
     chillFunction = linear_chill,
-    chillParameters = list(T_chill = 10),
+    chillParameters = list(
+      T_chill = 10
+    ),
     chillResponse = function(cumChill) { 1 - 0.46 * exp(-0.0005 * cumChill) }
   ),
 
@@ -263,32 +332,41 @@ example_lifestages <- list(
       b = 4.2
     ),
     varFunction = weibull_variability,
-    varParameters = list(a = 0.8, c = 3)
+    varParameters = list(
+      a = 0.8, 
+      c = 3
+    )
   ),
 
   pupae = new_lifestage(
     name = "Pupae",
     devFunction = linear_development,
-    devParameters = list(b = 10, q = 200),
+    devParameters = list(
+      b = 10, 
+      q = 250
+    ),
     varFunction = cum_normal_variability,
-    varParameters = list(sd = 0.1)
+    varParameters = list(
+      sd = 0.1
+    )
   ),
 
   adults = new_lifestage(
     name = "Adults",
     devFunction = calendar_development,
-    devParameters = list(Q = 14),
+    devParameters = list(
+      Q = 14
+    ),
     varFunction = cum_normal_variability,
-    varParameters = list(sd = 0.1)
+    varParameters = list(
+      sd = 0.1
+    )
   )
 )
 
 ```
 
-
-# Population processes
-
-Authors can 
+Authors can then define a timestep function that captures the population processes
 
 ```{r example-timestep}
 example_timestep <- function(
@@ -324,44 +402,34 @@ example_timestep <- function(
 
 ```
 
+Then the package offers a generic simulation engine, `run_simulation()`. The user supplies:
 
-# Generic simulation engine
-
-The package offers an optional generic simulation engine, `run_simulation()`. The user supplies:
-
-- a population definition
-- initial population sizes
+- the population as a named list of life stages with their initial population sizes
 - a timestep function
-- environmental drivers
+- the environmental drivers
 
-The bundled example model implements a complete insect life cycle.
-
-
-# Running the example simulation
-
-```{r run-simulation}
+```{r demo-simulation}
 set.seed(123)
 
 pop <- example_lifestages
 pop$eggs <- add_cohort(pop$eggs, 1000)
 
-system.time({
 results <- run_simulation(
   population = pop,
   timestep = example_timestep,
   drivers = drivers
 )
-})
 
 head(results)
 
 ```
 
-The output contains both environmental variables and life-stage abundances through time.
+The output contains both environmental variables and life stage abundances through time.
+
 
 ## Visualising population dynamics
 
-The trajectory of each life stage can be visualised using:
+The trajectory of each life stage can be visualised as an area plot using `plot_population_trajectory()`
 
 ```{r fig-area-plot}
 plot_population_trajectory(
@@ -370,9 +438,7 @@ plot_population_trajectory(
 
 ```
 
-This shows the seasonal dynamics generated by the example model.
-
-A line plot may also be used:
+Alternatively, a line plot may be generated.
 
 ```{r fig-line-plot}
 plot_population_trajectory(
