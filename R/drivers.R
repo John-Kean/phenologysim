@@ -68,15 +68,17 @@ prepare_daylengths <- function(data, latitude = NULL) {
 
   # Figure out if daylength is increasing or decreasing
   data2 <- data |>
-    dplyr::select(date, daylength) |>
-    dplyr::distinct() |>
-    dplyr::mutate(prev_dl = lag(daylength, default = last(daylength))) |>
-    dplyr::mutate(daytrend = dplyr::case_when(
-      daylength > prev_dl ~  1,
-      daylength < prev_dl ~ -1,
-      TRUE                ~  0
-    )) |>
+    dplyr::distinct(date, daylength) |>
+    dplyr::arrange(date) |>
+    dplyr::mutate(
+      daytrend = c(
+        sign(daylength[2] - daylength[1]),
+        sign(diff(daylength))
+      )
+    ) |>
     dplyr::select(date, daytrend)
+
+  # Add daytrend into results and return
   dplyr::left_join(data, data2, by = "date")
 }
 
@@ -85,7 +87,8 @@ prepare_daylengths <- function(data, latitude = NULL) {
 #'
 #' This is a shorthand for prepare_temperatures() then prepare_daylengths().
 #'
-#' @param data A data frame with columns for date, temperature and daylength
+#' @param data A data frame with columns for date, temperature and optionally daylength
+#' @param latitude Optional alternative if daylength is not supplied
 #' @returns A data frame with columns for date, dayfraction, degreesC, daylength and daytrend
 #' @export
 #'
@@ -100,12 +103,47 @@ prepare_drivers <- function(data, ...) {
 #' Plot drivers
 #'
 #' @param driver_data A data frame with columns for date, dayfraction, degreesC, daylength and daytrend
-#' @returns A ggplot graph
+#' @returns A ggplot graph showing temperature and daylength
 #' @export
-#' @examples
-#' plot_drivers(example_varying_drivers())
 #'
 plot_drivers <- function(driver_data) {
+  driver_data |>
+    dplyr::group_by(date) |>
+    dplyr::mutate(
+      datetime = as.POSIXct(date) +
+        (cumsum(dayfraction) - dayfraction) * 86400
+    ) |>
+    dplyr::ungroup() |>
+    ggplot2::ggplot(ggplot2::aes(x = datetime)) +
+    ggplot2::geom_line(
+      ggplot2::aes(y = (daylength - 6) * 30 / 12),
+      linewidth = 1.2,
+      colour = "wheat2"
+    ) +
+    ggplot2::geom_step(
+      ggplot2::aes(y = degreesC),
+      linewidth = 1,
+      colour = "forestgreen",
+      direction = "hv"
+    ) +
+    ggplot2::scale_y_continuous(
+      name = "Temperature (°C)",
+      sec.axis = ggplot2::sec_axis(~ . * 12 / 30 + 6, name = "Daylength (h)")
+    ) +
+    ggplot2::labs(
+      x = "Date"
+    ) +
+    ggplot2::theme_classic()
+}
+
+
+#' Plot daily drivers
+#'
+#' @param driver_data A data frame with columns for date, dayfraction, degreesC, daylength and daytrend
+#' @returns A ggplot graph showing daily Tmin, Tmax, Tmean and daylength
+#' @export
+#'
+plot_daily_drivers <- function(driver_data) {
   driver_data |>
     dplyr::mutate(date = as.Date(date)) |>
     dplyr::group_by(date) |>
@@ -121,24 +159,31 @@ plot_drivers <- function(driver_data) {
       values_to = "Temperature"
     ) |>
     ggplot2::ggplot(ggplot2::aes(x = date)) +
-      ggplot2::geom_line(
-        ggplot2::aes(y = Temperature, colour = Datum),
-        linewidth = 0.5
-      ) +
-      ggplot2::geom_line(
-        ggplot2::aes(y = (daylength - 6) * 30 / 12),
-        linewidth = 1.2,
-        colour = "darkgrey"
-      ) +
-      ggplot2::scale_y_continuous(
-        name = "Temperature (°C)",
-        sec.axis = ggplot2::sec_axis(~ . * 12 / 30 + 6, name = "Daylength (h)")
-      ) +
-      ggplot2::labs(
-        x = "Date",
-        colour = ""
-      ) +
-      ggplot2::theme_classic()
+    ggplot2::geom_line(
+      ggplot2::aes(y = (daylength - 6) * 30 / 12),
+      linewidth = 1.2,
+      colour = "wheat2"
+    ) +
+    ggplot2::geom_line(
+      ggplot2::aes(y = Temperature, colour = Datum),
+      linewidth = 0.5
+    ) +
+    ggplot2::scale_colour_manual(
+      values = c(
+        Tmin = "steelblue3",
+        Tmean = "forestgreen",
+        Tmax = "firebrick3"
+      )
+    ) +
+    ggplot2::scale_y_continuous(
+      name = "Temperature (°C)",
+      sec.axis = ggplot2::sec_axis(~ . * 12 / 30 + 6, name = "Daylength (h)")
+    ) +
+    ggplot2::labs(
+      x = "Date",
+      colour = ""
+    ) +
+    ggplot2::theme_classic()
 }
 
 

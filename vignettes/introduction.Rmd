@@ -8,6 +8,7 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+rm(list = ls())
 
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -16,34 +17,39 @@ knitr::opts_chunk$set(
   fig.height = 4
 )
 
+set.seed(1234)
+
 ```
 
 # Introduction
 
-`phenologysim` is an R package for modelling phenology and population dynamics in organisms whose development depends on environmental conditions.
+`phenologysim` is an R package for modelling phenology and population dynamics in insects and other organisms whose development depends on environmental conditions.
+
+The package is available on GitHub at https://github.com/John-Kean/phenologysim and can be installed by calling `remotes::install_github("John-Kean/phenologysim")`.
 
 ```{r setup}
-# remotes::install_github("John-Kean/phenologysim")
 library(phenologysim)
 
 ```
 
 The package provides:
 
+- A structured framework for modelling life stages
 - Temperature-dependent development models
-- Developmental variability models
-- Chilling-dependent development
-- Daylength-dependent life stages
-- Cohort-based population simulation
+- Calendar-based development
+- Daylength-dependent life stages (a form of diapause)
+- Chilling-dependent development (another form of diapause)
+- Specific variability in developmental requirements
+- Cohort-based population simulation with demographic stochasticity
 - Visualisation tools
-- Example models and datasets
+- Worked examples
 
 Although originally developed for insect phenology modelling, the framework can be applied to any organism where progression through life stages depends on temperature, time, chilling accumulation or photoperiod.
 
 
 # Core concepts
 
-A phenology simulation in `phenologysim` consists of four main components:
+All functions and objects in `phenologysim` can be integrated in whatever way the author needs, but it encourages a structured approach to phenology simulation consisting of four main components:
 
 1. **Environmental drivers** such as temperature and daylength.
 2. **Life stages** such as eggs, larvae, pupae and adults.
@@ -55,44 +61,55 @@ The package includes helper functions for each of these components.
 
 # Environmental drivers
 
-Environmental conditions are provided as a driver data frame containing:
+Environmental conditions ("drivers") are provided as a data frame containing columns:
 
-- date
-- dayfraction
-- degreesC
-- daylength
-- daytrend
+- *date*, in the form "YYYY-MM-DD"
+- *dayfraction*, being the fraction of the day
+- *degreesC*, the temperature in °C
+- *daylength*, as hours of light
+- *daytrend*, being 1 if daylength is increasing, or -1 if it is decreasing
 
-If daily min/max/mean temperatures are provided, these can be converted to the required format using `prepare_drivers()`.
+Rows must be sorted in sequential order, and the dayfractions for all rows with the same date should add to 1.
+
+If daily min/max/mean temperatures are provided, these can be converted to the required format using `prepare_drivers()`. Similarly, the column for daytrend can be added automatically using the same function.
 
 ```{r create-drivers}
+# Create fake data with a seasonal cycle
 cos <- 5 * cos(seq(0, 2 * pi, length.out = 365))
 drivers_raw <- data.frame(
   date = seq.Date(as.Date("2020-07-01"), by = "day", length.out = 365),
   Tmin  = rnorm(365, mean = 10 - cos, sd = 1),
   Tmax  = rnorm(365, mean = 20 - cos, sd = 1),
   Tmean = rnorm(365, mean = 15 - cos, sd = 1)
-) |>
-  dplyr::mutate(daylength = geosphere::daylength(lat = -37.44, doy = lubridate::yday(date)))
+)
 
-drivers <- prepare_drivers(drivers_raw)
+# Format these data for use
+drivers <- prepare_drivers(drivers_raw, latitude = -37.44)
+
 head(drivers)
 
 ```
 
-The generated data contain seasonal variation in both temperature and daylength.
+Correctly formatted drivers can be plotted to show variation in both temperature and daylength...
 
 ```{r plot-drivers}
-plot_drivers(drivers)
+# Plot the first week of data in detail
+plot_drivers(drivers[1:32, ])
 
 ```
+...or summarised to daily min, max and mean values.
 
+```{r plot-daily-drivers}
+# Plot all data as daily summaries
+plot_daily_drivers(drivers)
+
+```
 
 # Life stages
 
 Life stages are represented as S3 objects.
 
-A typical stage consists of:
+A typical life stage specifies:
 
 - a development model
 - development parameters
@@ -101,17 +118,17 @@ A typical stage consists of:
 
 For example:
 
-```{r create-larvae}
+```{r demo-create-larvae}
 larvae <- new_lifestage(
   name = "Larvae",
   devFunction = linear_development,
   devParameters = list(
-    b = 10,
-    q = 200
+    b = 10,   # base temperature required for development (°C)
+    q = 200   # day degrees required to complete the life stage (°d)
   ),
   varFunction = cum_normal_variability,
   varParameters = list(
-    sd = 0.1
+    sd = 0.1  # standard deviation in relative developmental requirement (mean = 1)
   )
 )
 
@@ -120,6 +137,47 @@ larvae
 ```
 
 A life stage may contain multiple cohorts of different ages and developmental states.
+
+To add a cohort, use `add_cohort()`:
+
+```{r demo-add-cohort}
+# Add a cohort of 1200 individuals
+larvae <- add_cohort(larvae, 1200)
+
+# Add another cohort of 34 individuals who have completed 50% of their development
+larvae <- add_cohort(larvae, 34, cumDevelopment = 0.5)
+
+larvae
+
+```
+
+To see the total number of individuals in that life stage use `total()`:
+
+```{r demo-total}
+total(larvae)
+
+```
+
+To implement mortality or survival, use `survive()`. For a one-off mortality event just specify the survival proportion:
+
+```{r demo-survive}
+larvae <- survive(larvae, 0.9)  # Implement 10% mortality
+
+total(larvae)
+
+```
+
+Note that binomial rounding is used to maintain integer population sizes and introduce demographic stochasticity. Therefore, `survive()` and similar functions will not always give the same result.
+
+```{r demo-stochasticity}
+total(survive(larvae, 0.9))
+total(survive(larvae, 0.9))
+total(survive(larvae, 0.9))
+
+```
+
+
+
 
 ## Development models
 
@@ -246,12 +304,13 @@ example_timestep <- function(
 
   p <- population
   d <- drivers
+  f <- drivers$dayfraction
 
   # Survival and development
-  p$eggs   <- p$eggs   |> survive(d, survival["eggs"])   |> develop(d)
-  p$larvae <- p$larvae |> survive(d, survival["larvae"]) |> develop(d)
-  p$pupae  <- p$pupae  |> survive(d, survival["pupae"])  |> develop(d)
-  p$adults <- p$adults |> survive(d, survival["adults"]) |> develop(d)
+  p$eggs   <- p$eggs   |> survive(survival["eggs"],   f) |> develop(d)
+  p$larvae <- p$larvae |> survive(survival["larvae"], f) |> develop(d)
+  p$pupae  <- p$pupae  |> survive(survival["pupae"],  f) |> develop(d)
+  p$adults <- p$adults |> survive(survival["adults"], f) |> develop(d)
 
   # Stages mature
   p$eggs   <- p$eggs   |> add_cohort(rpois(1, total(p$adults) * fecundity))
@@ -286,11 +345,13 @@ set.seed(123)
 pop <- example_lifestages
 pop$eggs <- add_cohort(pop$eggs, 1000)
 
+system.time({
 results <- run_simulation(
   population = pop,
   timestep = example_timestep,
   drivers = drivers
 )
+})
 
 head(results)
 

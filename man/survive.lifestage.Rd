@@ -4,14 +4,14 @@
 \alias{survive.lifestage}
 \title{Apply survival to all cohorts in the lifestage}
 \usage{
-\method{survive}{lifestage}(x, drivers, survival)
+\method{survive}{lifestage}(x, survival_rate, day_fraction = 1)
 }
 \arguments{
 \item{x}{A lifestage object}
 
-\item{drivers}{Tibble including the dayfraction}
+\item{survival_rate}{Survival rate /day}
 
-\item{survival}{Survival rate /day}
+\item{day_fraction}{Proportion of the day that this applies to (default = 1)}
 }
 \value{
 The updated lifestage object
@@ -20,6 +20,6 @@ The updated lifestage object
 Apply survival to all cohorts in the lifestage
 }
 \examples{
-  larvae <- larvae |> survive(0.99, d)
+  larvae <- larvae |> survive(0.99, 0.25)
 
 }

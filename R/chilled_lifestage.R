@@ -95,9 +95,10 @@ add_cohort.chilled_lifestage <- function(
   p <- x$var_fun(cumDevelopment)
   n <- as.integer(round(number))
 
-  x$cohorts <- data.table::rbindlist(list(
+
+  x$cohorts <- dplyr::bind_rows(
     x$cohorts,
-    data.table::data.table(
+    tibble::tibble(
       StartNumber    = n,
       CurrentNumber  = n,
       CumDevelopment = cumDevelopment,
@@ -106,8 +107,7 @@ add_cohort.chilled_lifestage <- function(
       AgeDays        = 0,
       CumChill       = cumChill
     )
-  ), use.names = TRUE)
-
+  )
   x
 }
 
@@ -129,7 +129,7 @@ develop.chilled_lifestage <- function(x, drivers) {
     return(x)
   }
   DT <- x$cohorts
-  DT[, MaturedToday := 0L]
+  DT$MaturedToday <- 0L
 
   # Base development
   d_base <- x$dev_fun(
@@ -142,7 +142,7 @@ develop.chilled_lifestage <- function(x, drivers) {
   x$chillToday <- x$chill_fun(t = drivers$degreesC) * drivers$dayfraction
 
   # Update cumulative chilling
-  DT[, CumChill := CumChill + x$chillToday]
+  DT$CumChill <- DT$CumChill + x$chillToday
 
   # Chill response
   rel_dev <- x$chill_response(DT$CumChill)
@@ -152,10 +152,8 @@ develop.chilled_lifestage <- function(x, drivers) {
   x$devToday <- d_base * rel_dev * drivers$dayfraction
 
   # Update development & age
-  DT[, `:=`(
-    CumDevelopment = CumDevelopment + x$devToday,
-    AgeDays = AgeDays + drivers$dayfraction
-  )]
+  DT$CumDevelopment <- DT$CumDevelopment + x$devToday
+  DT$AgeDays <- DT$AgeDays + drivers$dayfraction
 
   # Maturation probability
   p <- x$var_fun(DT$CumDevelopment)
@@ -165,10 +163,11 @@ develop.chilled_lifestage <- function(x, drivers) {
   prob <- pmin(pmax(prob, 0), 1)
 
   # Update cohorts
-  DT[, MaturedToday := rbinom(.N, CurrentNumber, prob)]
-  DT[, CurrentNumber := CurrentNumber - MaturedToday]
-  DT[, PropnMatured := p]
-  x$cohorts <- DT[CurrentNumber + MaturedToday > 0]
+  DT$MaturedToday <- rbinom(nrow(DT), DT$CurrentNumber, prob)
+  DT$CurrentNumber <- DT$CurrentNumber - DT$MaturedToday
+  DT$PropnMatured <- p
+  x$cohorts <- dplyr::filter(DT, CurrentNumber + MaturedToday > 0)
+
   x
 }
 

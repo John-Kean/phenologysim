@@ -7,7 +7,9 @@
 prepare_drivers(data, ...)
 }
 \arguments{
-\item{data}{A data frame with columns for date, temperature and daylength}
+\item{data}{A data frame with columns for date, temperature and optionally daylength}
+
+\item{latitude}{Optional alternative if daylength is not supplied}
 }
 \value{
 A data frame with columns for date, dayfraction, degreesC, daylength and daytrend

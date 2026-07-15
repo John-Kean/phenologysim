@@ -61,7 +61,7 @@ new_lifestage <- function(
       devParameters = devParameters,
       varParameters = varParameters,
       devToday = 0,
-      cohorts = data.table::data.table(
+      cohorts = tibble::tibble(
         StartNumber    = integer(),
         CurrentNumber  = integer(),
         CumDevelopment = numeric(),
@@ -129,9 +129,9 @@ add_cohort.lifestage <- function(
   if (is.na(number) || number <= 0) return(x)
   p <- x$var_fun(cumDevelopment)
   n <- as.integer(round(number))
-  x$cohorts <- data.table::rbindlist(list(
+  x$cohorts <- dplyr::bind_rows(
     x$cohorts,
-    data.table::data.table(
+    tibble::tibble(
       StartNumber = n,
       CurrentNumber = n,
       CumDevelopment = cumDevelopment,
@@ -139,7 +139,7 @@ add_cohort.lifestage <- function(
       MaturedToday = 0L,
       AgeDays = 0
     )
-  ), use.names = TRUE)
+  )
   x
 }
 
@@ -147,21 +147,23 @@ add_cohort.lifestage <- function(
 #' Apply survival to all cohorts in the lifestage
 #'
 #' @param x A lifestage object
-#' @param drivers Tibble including the dayfraction
-#' @param survival Survival rate /day
+#' @param survival_rate Survival rate /day
+#' @param day_fraction Proportion of the day that this applies to (default = 1)
 #' @returns The updated lifestage object
 #' @export
 #' @examples
-#'   larvae <- larvae |> survive(0.99, d)
+#'   larvae <- larvae |> survive(0.99, 0.25)
 #'
 survive.lifestage <- function(
     x,
-    drivers,
-    survival
+    survival_rate,
+    day_fraction = 1
 ) {
-  surv <- exp((survival - 1) * drivers$dayfraction)
-  x$cohorts[, CurrentNumber := rbinom(.N, CurrentNumber, surv)]
-  x$cohorts <- x$cohorts[CurrentNumber > 0]
+  s <- max(0, min(1, survival_rate))
+  d <- max(0, min(1, day_fraction))
+  surv <- s ^ d
+  x$cohorts$CurrentNumber <- rbinom(nrow(x$cohorts), x$cohorts$CurrentNumber, surv)
+  x$cohorts <- dplyr::filter(x$cohorts, CurrentNumber > 0)
   x
 }
 
@@ -175,7 +177,7 @@ survive.lifestage <- function(
 #'   larvae <- larvae |> kill_all()
 #'
 kill_all.lifestage <- function(x) {
-  x$cohorts <- x$cohorts[0]
+  x$cohorts <- x$cohorts[0, ]
   x
 }
 
@@ -193,7 +195,7 @@ develop.lifestage <- function(x, drivers) {
 
   if (!nrow(x$cohorts)) return(x)
   DT <- x$cohorts
-  DT[, MaturedToday := 0L]
+  DT$MaturedToday <- 0L
 
   # Development
   x$devToday <- x$dev_fun(
@@ -203,10 +205,8 @@ develop.lifestage <- function(x, drivers) {
   ) * drivers$dayfraction
 
   # Update development & age
-  DT[, `:=`(
-    CumDevelopment = CumDevelopment + x$devToday,
-    AgeDays = AgeDays + drivers$dayfraction
-  )]
+  DT$CumDevelopment <- DT$CumDevelopment + x$devToday
+  DT$AgeDays <- DT$AgeDays + drivers$dayfraction
 
   # Maturation probability
   p <- x$var_fun(DT$CumDevelopment)
@@ -216,10 +216,10 @@ develop.lifestage <- function(x, drivers) {
   prob <- pmin(pmax(prob, 0), 1)
 
   # Update cohorts
-  DT[, MaturedToday := rbinom(.N, CurrentNumber, prob)]
-  DT[, CurrentNumber := CurrentNumber - MaturedToday]
-  DT[, PropnMatured := p]
-  x$cohorts <- DT[CurrentNumber + MaturedToday > 0]
+  DT$MaturedToday  <- rbinom(nrow(DT), DT$CurrentNumber, prob)
+  DT$CurrentNumber <- DT$CurrentNumber - DT$MaturedToday
+  DT$PropnMatured  <- p
+  x$cohorts <- dplyr::filter(DT, CurrentNumber + MaturedToday > 0)
   x
 }
 
@@ -234,7 +234,7 @@ develop.lifestage <- function(x, drivers) {
 #'
 maturing.lifestage <- function(x, ...) {
   if (nrow(x$cohorts) == 0) return(0)
-  sum(x$cohorts[, MaturedToday])
+  sum(x$cohorts$MaturedToday)
 }
 
 
@@ -248,7 +248,7 @@ maturing.lifestage <- function(x, ...) {
 #'
 total.lifestage <- function(x, ...) {
   if (nrow(x$cohorts) == 0) return(0)
-  sum(x$cohorts[, CurrentNumber])
+  sum(x$cohorts$CurrentNumber)
 }
 
 
