@@ -1,0 +1,320 @@
+---
+title: "Phenology model for spotted lanternfly"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{spotted_lanternfly}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4
+)
+
+set.seed(1234)
+
+```
+
+```{r setup}
+library(phenologysim)
+
+```
+
+Spotted lanternfly (SLF, *Lycorma delicatula*) is a pest insect similar to a cicada that harms plants by feeding on the xylem and spreading plant pathogens. It typically has one generation per year, with eggs overwintering in a diapausing (resting) state for 5 to 9 months of the year. Eggs hatch in spring to small nymphs that develop through several moults to adulthood.
+
+
+## Development rates
+
+The nymph and adult stages follow fairly straightforward temperature-dependent development, but the diapausing eggs are more complicated to model.
+
+Egg development appears to proceed slowly, but is accelerated by exposure to low chilling temperatures. Hence, eggs exposed to different amounts of chilling may develop and hatch, but at different rates. Daylength has no effect on diapause in SLF. The current hypothesis among experts is that the rate of development of SLF eggs may depend on a balance between day-degree and chill accumulation. One possible mechanism would involve an inhibitor chemical that slows down egg development, but which is itself degraded by low temperatures. 
+
+Kean et al. (2026) fitted the following model to laboratory data from different warming and chilling treatments: 
+
+$$ \begin{aligned} C_t &= C_{t-1} + [T_c - T_t]_+ \\ \\ D_t &= D_{t-1} + \frac{[T_t - T_d]_+}{Q} \times g(C_t) \end{aligned} $$ {#eq-slf-chilling}
+
+where $C_t$ is the cumulative chilling at time (day) $t$ (initialised as $C_0$ = 0); $T_c$ is the chilling threshold temperature; $T_t$ is the temperature at time $t$; $[x]_+$ denotes the maximum of $x$ and $0$; $D_t$ is the cumulative development at time $t$ (initialised as $D_0$ = 0); $T_d$ is the development threshold temperature; $Q$ is the day degree requirement; and the function $g(C_t)$ determines the relative development rate in relation to the chilling accumulation. Egg development is completed once $D_t$ exceeds 1.
+
+An appropriate function for $g(C)$ was found to be:
+
+$$ g(C) = 1 - ae^{-bC} $$ {#eq-slf-chill-effect}
+
+where $1-a$ = 0.54 is the relative development rate when $C = 0$; and $b$ = 0.0005 is the rate at which the relative development rate increases asymptotically with $C$.
+
+```{r}
+slf_chill_effect <- function(cumChill) {
+  1 - 0.46 * exp(-0.0005 * cumChill)
+}
+
+curve(
+  slf_chill_effect(x),
+  from = 0,
+  to = 8000,
+  xlab = "Cumulative chilling, C (°d)",
+  ylab = "Relative development rate, g(C)"
+)
+
+```
+
+The population structure can be modelled as:
+
+```{r slf-life-stages}
+slf_lifestages <- list(
+    
+  eggs = new_chilled_lifestage(
+    name = "Eggs",
+    devFunction = linear_development,
+    devParameters = c(b = 7.4, q = 428),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1),
+    chillFunction = linear_chill,
+    chillParameters = c(T_chill = 13.9),
+    chillResponse = slf_chill_effect
+  ),
+  
+  instar1 = new_lifestage(
+    name = "Instar 1 nymphs",
+    devFunction = linear_development,
+    devParameters = c(b = 10, q = 157),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1)
+  ),
+  
+  instar2 = new_lifestage(
+    name = "Instar 2 nymphs",
+    devFunction = linear_development,
+    devParameters = c(b = 10, q = 174),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1)
+  ),
+  
+  instar3 = new_lifestage(
+    name = "Instar 3 nymphs",
+    devFunction = linear_development,
+    devParameters = c(b = 10, q = 245),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1)
+  ),
+  
+  instar4 = new_lifestage(
+    name = "Instar 4 nymphs",
+    devFunction = linear_development,
+    devParameters = c(b = 10, q = 314),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1)
+  ),
+  
+  prerepr = new_lifestage(
+    name = "Pre-reproductive adult",
+    devFunction = linear_development,
+    devParameters = c(b = 10.4, q = 380),
+    varFunction = cum_normal_variability,
+    varParameters = c(sd = 0.1)
+  ),
+  
+  unmated = new_daylength_lifestage(   
+    name = "Unmated reproductive adult",
+    Threshold = 14,
+    ReqTrend = -1,
+    Variation = 0.5
+  ),
+  
+  females = new_lifestage(   
+    name = "Mated reproductive adult female",
+    devFunction = calendar_development,
+    devParameters = list(Q = 50),
+    varFunction = cum_normal_variability,
+    varParameters = list(sd = 0.1)
+  ),
+  
+  males = new_lifestage(   
+    name = "Reproductive adult male",
+    devFunction = calendar_development,
+    devParameters = list(Q = 100),
+    varFunction = cum_normal_variability,
+    varParameters = list(sd = 0.1)
+  )
+)
+
+```
+
+
+## Mortality
+
+
+
+```{r slf-mortality}
+slf_mortality <- function(t, stage, fed = TRUE) {
+  
+  # Make sure fed is a vector
+  if (length(fed) == 1) fed <- rep(fed, length(t))
+  
+  # Calculate the egg math for all rows (vectorised)
+  egg_mortality <- ifelse(
+    t < -5, 
+    exp(-3 - 0.17 * t), 
+    exp(-7.5 + 0.14 * t)
+  )
+  
+  # Calculate the base math for nymphs and adults for all rows (vectorised)
+  base <- pmin(1, exp(4 - 1.6 * t + 0.1 * t^2 - 0.0028 * t^3 + 3e-5 * t^4))
+  
+  # Safely look up vectors of a and b coefficients based on the stage vector
+  coeffs <- tibble::tribble(
+    ~stage,        ~a,    ~b,
+    "Instar1",     38.73, 0.100,
+    "Instar2",     17.30, 0.080,
+    "Instar3",     19.19, 0.081,
+    "AdultFemale",  8.37, 0.051,
+    "AdultMale",    6.73, 0.055
+  )
+  a_vals <- coeffs$a[match(stage, coeffs$stage)]
+  b_vals <- coeffs$b[match(stage, coeffs$stage)]
+
+  # Calculate unfed result for all rows (vectorised)
+  unfed_mortality <- pmax(base, 1 - exp(-exp(b_vals * t) / a_vals))
+
+  # Final selection
+  out <- base
+  
+  # Apply unfed adjustment
+  out[!fed] <- unfed_mortality[!fed]
+  
+  # Override eggs
+  egg_idx <- stage == "Egg"
+  out[egg_idx] <- egg_mortality[egg_idx]
+  
+  # Return result
+  out
+}
+
+
+```
+
+
+## Population timestep
+
+
+```{r}
+slf_timestep <- function(
+    population,
+    drivers,
+    food_available = TRUE,
+    sex_ratio      = 0.5,
+    fecundity      = 30,
+    mortality      = TRUE,
+    winter_kill    = FALSE
+) {
+  
+  p <- population
+  d <- drivers
+  t <- drivers$degreesC
+  f <- drivers$dayfraction
+  
+  # Kill all non-diapausing stages on 1 July
+  if (winter_kill && format(d$date, "%m-%d") == "07-01") {
+    p$instar1 <- p$instar1 |> kill_all()
+    p$instar2 <- p$instar2 |> kill_all()
+    p$instar3 <- p$instar3 |> kill_all()
+    p$instar4 <- p$instar4 |> kill_all()
+    p$prerepr <- p$prerepr |> kill_all()
+    p$unmated <- p$unmated |> kill_all()
+    p$females <- p$females |> kill_all()
+    p$males   <- p$males   |> kill_all()
+  }
+  
+  # Survival
+  if (mortality) {
+    p$eggs    <- p$eggs    |> survive(1 - slf_mortality(t, "Egg"),                               f)
+    p$instar1 <- p$instar1 |> survive(1 - slf_mortality(t, "Instar1",     fed = food_available), f)
+    p$instar2 <- p$instar2 |> survive(1 - slf_mortality(t, "Instar2",     fed = food_available), f)
+    p$instar3 <- p$instar3 |> survive(1 - slf_mortality(t, "Instar3",     fed = food_available), f)
+    p$instar4 <- p$instar4 |> survive(1 - slf_mortality(t, "Instar4",     fed = food_available), f)
+    p$prerepr <- p$prerepr |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+    p$unmated <- p$unmated |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+    p$females <- p$females |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+    p$males   <- p$males   |> survive(1 - slf_mortality(t, "AdultMale",   fed = food_available), f)
+  }
+  
+  # Life stages develop
+  p$eggs    <- p$eggs    |> develop(d)
+  p$instar1 <- p$instar1 |> develop(d)
+  p$instar2 <- p$instar2 |> develop(d)
+  p$instar3 <- p$instar3 |> develop(d)
+  p$instar4 <- p$instar4 |> develop(d)
+  p$prerepr <- p$prerepr |> develop(d)
+  p$unmated <- p$unmated |> develop(d)
+  p$females <- p$females |> develop(d)
+  p$males   <- p$males   |> develop(d)
+  
+  # Stages mature
+  p$instar1  <- p$instar1 |> add_cohort(maturing(p$eggs))
+  p$instar2  <- p$instar2 |> add_cohort(maturing(p$instar1))
+  p$instar3  <- p$instar3 |> add_cohort(maturing(p$instar2))
+  p$instar4  <- p$instar4 |> add_cohort(maturing(p$instar3))
+  p$prerepr  <- p$prerepr |> add_cohort(maturing(p$instar4))
+  p$unmated  <- p$unmated |> add_cohort(maturing(p$prerepr))
+  newreprod  <- maturing(p$unmated)
+  newfemales <- rbinom(1, newreprod, sex_ratio)
+  layingeggs <- newfemales + maturing(p$females)
+  if (mortality) {
+    p$eggs    <- p$eggs    |> add_cohort(rpois(1, layingeggs * fecundity))
+    p$females <- p$females |> add_cohort(layingeggs)
+  } else {
+    p$eggs    <- p$eggs    |> add_cohort(ceiling(newfemales / sex_ratio))
+    p$females <- p$females |> add_cohort(newfemales)
+  }
+  p$males <- p$males |> add_cohort(newreprod - newfemales)
+  
+  p
+}
+
+
+```
+
+
+## Environmental data
+
+```{r create-drivers}
+# Create fake data with a seasonal cycle
+cos <- 5 * cos(seq(0, 2 * pi, length.out = 365))
+drivers_raw <- data.frame(
+  date = seq.Date(as.Date("2020-07-01"), by = "day", length.out = 365),
+  Tmin  = rnorm(365, mean = 10 - cos, sd = 1),
+  Tmax  = rnorm(365, mean = 20 - cos, sd = 1),
+  Tmean = rnorm(365, mean = 15 - cos, sd = 1)
+)
+
+# Format these data for use
+drivers <- prepare_drivers(drivers_raw, latitude = -37.44)
+
+plot_daily_drivers(drivers)
+
+```
+
+## Simulation results
+
+```{r run-slf-model}
+slf_lifestages$eggs <- add_cohort(slf_lifestages$eggs, 1000)
+
+results <- run_simulation(
+  population = slf_lifestages,
+  timestep   = slf_timestep,
+  drivers    = drivers,
+  mortality  = TRUE
+)
+
+plot_population_trajectory(
+  dplyr::select(results, c("date", "eggs" : "males")),
+  type = "line"
+)
+
+```
+
+
+
+
