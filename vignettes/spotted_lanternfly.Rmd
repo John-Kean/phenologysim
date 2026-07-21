@@ -24,7 +24,7 @@ library(phenologysim)
 
 ```
 
-Spotted lanternfly (SLF, *Lycorma delicatula*) is a pest insect similar to a cicada that harms plants by feeding on the xylem and spreading plant pathogens. It typically has one generation per year, with eggs overwintering in a diapausing (resting) state for 5 to 9 months of the year. Eggs hatch in spring to small nymphs that develop through several moults to adulthood.
+Spotted lanternfly (SLF, *Lycorma delicatula*) is a pest insect similar to a cicada that harms plants by feeding on the phloem and spreading plant pathogens. It typically has one generation per year, with eggs overwintering in a diapausing (resting) state for 5 to 9 months of the year. Eggs hatch in spring to small nymphs that develop through several moults to adulthood.
 
 
 ## Development rates

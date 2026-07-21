@@ -4,7 +4,7 @@
 \alias{survive.daylength_lifestage}
 \title{Apply survival to a daylength_lifestage}
 \usage{
-\method{survive}{daylength_lifestage}(x, drivers, survival)
+\method{survive}{daylength_lifestage}(x, survival_rate, day_fraction = 1)
 }
 \arguments{
 \item{x}{A daylength_lifestage object}

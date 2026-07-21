@@ -79,10 +79,14 @@ add_cohort.daylength_lifestage <- function(x, number) {
 #' @returns A modified daylength_lifestage object
 #' @export
 #'
-survive.daylength_lifestage <- function(x, drivers, survival) {
-  surv <- exp((survival - 1) * drivers$dayfraction)
-  surv <- ifelse(is.na(surv), 0, surv)
-  surv <- pmin(pmax(surv, 0), 1)
+survive.daylength_lifestage <- function(
+    x,
+    survival_rate,
+    day_fraction = 1
+) {
+  s <- max(0, min(1, survival_rate))
+  d <- max(0, min(1, day_fraction))
+  surv <- s ^ d
   size <- ifelse(is.na(x$numberTotal) | x$numberTotal < 0, 0, floor(x$numberTotal))
   x$numberTotal <- rbinom(1, x$numberTotal, surv)
   x
