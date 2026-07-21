@@ -33,15 +33,15 @@ The nymph and adult stages follow fairly straightforward temperature-dependent d
 
 Egg development appears to proceed slowly, but is accelerated by exposure to low chilling temperatures. Hence, eggs exposed to different amounts of chilling may develop and hatch, but at different rates. Daylength has no effect on diapause in SLF. The current hypothesis among experts is that the rate of development of SLF eggs may depend on a balance between day-degree and chill accumulation. One possible mechanism would involve an inhibitor chemical that slows down egg development, but which is itself degraded by low temperatures. 
 
-Kean et al. (2026) fitted the following model to laboratory data from different warming and chilling treatments: 
+Kean et al. (2026) fitted the following model to laboratory data from different warming and chilling treatments (Keena & Nielsen 2021): 
 
-$$ \begin{aligned} C_t &= C_{t-1} + [T_c - T_t]_+ \\ \\ D_t &= D_{t-1} + \frac{[T_t - T_d]_+}{Q} \times g(C_t) \end{aligned} $$ {#eq-slf-chilling}
+$$ \begin{aligned} C_t &= C_{t-1} + [T_c - T_t]_+ \\ \\ D_t &= D_{t-1} + \frac{[T_t - T_d]_+}{Q} \times g(C_t) \end{aligned} $$
 
 where $C_t$ is the cumulative chilling at time (day) $t$ (initialised as $C_0$ = 0); $T_c$ is the chilling threshold temperature; $T_t$ is the temperature at time $t$; $[x]_+$ denotes the maximum of $x$ and $0$; $D_t$ is the cumulative development at time $t$ (initialised as $D_0$ = 0); $T_d$ is the development threshold temperature; $Q$ is the day degree requirement; and the function $g(C_t)$ determines the relative development rate in relation to the chilling accumulation. Egg development is completed once $D_t$ exceeds 1.
 
 An appropriate function for $g(C)$ was found to be:
 
-$$ g(C) = 1 - ae^{-bC} $$ {#eq-slf-chill-effect}
+$$ g(C) = 1 - ae^{-bC} $$
 
 where $1-a$ = 0.54 is the relative development rate when $C = 0$; and $b$ = 0.0005 is the rate at which the relative development rate increases asymptotically with $C$.
 
@@ -60,7 +60,13 @@ curve(
 
 ```
 
-The population structure can be modelled as:
+The nymphal stages can be modelled using a linear degree-day accumulation, with the the total duration as specified by Barker & Coop (2024), but splitting the individual instar durations by the proportions recorded by Kreitman et al. (2021).
+
+The pre-oviposition period of adults was modelled by Laveaga et al. (2023), but even after that adults only mate once daylength has declined below 14 hours (Melody Keena, pers. comm.). Therefore we add a stage for mature but unmated adults.
+
+Once mating, we assume that females can live for up to 50 days, and males up to 100 days. All stage durations are assumed subject to variability modelled by the standard deviation being 10% of the median.
+
+The population structure can now be modelled as:
 
 ```{r slf-life-stages}
 slf_lifestages <- list(
@@ -145,7 +151,7 @@ slf_lifestages <- list(
 
 ## Mortality
 
-
+Mortality rates were published by Keena (2024).
 
 ```{r slf-mortality}
 slf_mortality <- function(t, stage, fed = TRUE) {
@@ -198,6 +204,9 @@ slf_mortality <- function(t, stage, fed = TRUE) {
 
 ## Population timestep
 
+We can now specify the timestep function.
+
+First, non-diapausing stages are killed if it is midwinter (1 July). Otherwise survivorship is modelled as described above. After that, the survivors develop and mature. Mature females are assumed to oviposit immediately after mating and again right before death.
 
 ```{r}
 slf_timestep <- function(
@@ -205,9 +214,7 @@ slf_timestep <- function(
     drivers,
     food_available = TRUE,
     sex_ratio      = 0.5,
-    fecundity      = 30,
-    mortality      = TRUE,
-    winter_kill    = FALSE
+    fecundity      = 30
 ) {
   
   p <- population
@@ -216,7 +223,7 @@ slf_timestep <- function(
   f <- drivers$dayfraction
   
   # Kill all non-diapausing stages on 1 July
-  if (winter_kill && format(d$date, "%m-%d") == "07-01") {
+  if (format(d$date, "%m-%d") == "07-01") {
     p$instar1 <- p$instar1 |> kill_all()
     p$instar2 <- p$instar2 |> kill_all()
     p$instar3 <- p$instar3 |> kill_all()
@@ -228,18 +235,16 @@ slf_timestep <- function(
   }
   
   # Survival
-  if (mortality) {
-    p$eggs    <- p$eggs    |> survive(1 - slf_mortality(t, "Egg"),                               f)
-    p$instar1 <- p$instar1 |> survive(1 - slf_mortality(t, "Instar1",     fed = food_available), f)
-    p$instar2 <- p$instar2 |> survive(1 - slf_mortality(t, "Instar2",     fed = food_available), f)
-    p$instar3 <- p$instar3 |> survive(1 - slf_mortality(t, "Instar3",     fed = food_available), f)
-    p$instar4 <- p$instar4 |> survive(1 - slf_mortality(t, "Instar4",     fed = food_available), f)
-    p$prerepr <- p$prerepr |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
-    p$unmated <- p$unmated |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
-    p$females <- p$females |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
-    p$males   <- p$males   |> survive(1 - slf_mortality(t, "AdultMale",   fed = food_available), f)
-  }
-  
+  p$eggs    <- p$eggs    |> survive(1 - slf_mortality(t, "Egg"),                               f)
+  p$instar1 <- p$instar1 |> survive(1 - slf_mortality(t, "Instar1",     fed = food_available), f)
+  p$instar2 <- p$instar2 |> survive(1 - slf_mortality(t, "Instar2",     fed = food_available), f)
+  p$instar3 <- p$instar3 |> survive(1 - slf_mortality(t, "Instar3",     fed = food_available), f)
+  p$instar4 <- p$instar4 |> survive(1 - slf_mortality(t, "Instar4",     fed = food_available), f)
+  p$prerepr <- p$prerepr |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+  p$unmated <- p$unmated |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+  p$females <- p$females |> survive(1 - slf_mortality(t, "AdultFemale", fed = food_available), f)
+  p$males   <- p$males   |> survive(1 - slf_mortality(t, "AdultMale",   fed = food_available), f)
+
   # Life stages develop
   p$eggs    <- p$eggs    |> develop(d)
   p$instar1 <- p$instar1 |> develop(d)
@@ -261,13 +266,8 @@ slf_timestep <- function(
   newreprod  <- maturing(p$unmated)
   newfemales <- rbinom(1, newreprod, sex_ratio)
   layingeggs <- newfemales + maturing(p$females)
-  if (mortality) {
-    p$eggs    <- p$eggs    |> add_cohort(rpois(1, layingeggs * fecundity))
-    p$females <- p$females |> add_cohort(layingeggs)
-  } else {
-    p$eggs    <- p$eggs    |> add_cohort(ceiling(newfemales / sex_ratio))
-    p$females <- p$females |> add_cohort(newfemales)
-  }
+  p$eggs    <- p$eggs    |> add_cohort(rpois(1, layingeggs * fecundity))
+  p$females <- p$females |> add_cohort(layingeggs)
   p$males <- p$males |> add_cohort(newreprod - newfemales)
   
   p
@@ -278,6 +278,8 @@ slf_timestep <- function(
 
 
 ## Environmental data
+
+We create some fake temperature data for purposes of illustration. Daylengths are added for latitude 37.44 °S, corresponding to Auckland, New Zealand.
 
 ```{r create-drivers}
 # Create fake data with a seasonal cycle
@@ -298,14 +300,17 @@ plot_daily_drivers(drivers)
 
 ## Simulation results
 
+Results can now be generated by initialising the population with 1000 eggs, then calling `run_simulation()` and passing the population list, timestep function, and temperature/daylength drivers.
+
+We can also plot the results with `plot_population_trajectory()`.
+
 ```{r run-slf-model}
 slf_lifestages$eggs <- add_cohort(slf_lifestages$eggs, 1000)
 
 results <- run_simulation(
   population = slf_lifestages,
   timestep   = slf_timestep,
-  drivers    = drivers,
-  mortality  = TRUE
+  drivers    = drivers
 )
 
 plot_population_trajectory(
@@ -315,6 +320,17 @@ plot_population_trajectory(
 
 ```
 
+## References
 
+- Barker BS, Coop LB 2024. Spotted lanternfly _Lycorma delicatula_ (Hemiptera: Fulgoridae) phenology/degree-day and climate suitability model analysis for USPest.org. USDA NIFA AFRI Tactical Sciences for Agricultural Biosecurity (TSAB). https://uspest.org/CAPS/Lycorma_delicatula_white_paper.pdf.
 
+- Kean JM, Horner RM, Paudel S, Vereijssen J 2026. Is seasonal reversal a significant barrier to interhemispheric invasion? Paper in prep.
+
+- Keena MA, Nielsen AL 2021. Comparison of the hatch of newly laid _Lycorma delicatula_ (Hemiptera: Fulgoridae) eggs from the United States after exposure to different temperatures and durations of low temperature. Environmental Entomology 50: 410–417. https://doi.org/10.1093/ee/nvaa177.
+
+- Keena MA 2024. Effects of temperature on the survival of spotted lanternfly active life stages when held without food. Agricultural and Forest Entomology 26: 366–372. https://doi.org/10.1111/afe.12619.
+
+- Kreitman D, Keena MA, Nielsen AL, Hamilton G 2021. Effects of temperature on development and survival of nymphal _Lycorma delicatula_ (Hemiptera: Fulgoridae). Environmental Entomology 50: 183–191. https://doi.org/10.1093/ee/nvaa155.
+
+- Laveaga E, Hoover K, Acevedo FE 2023. Life history traits of spotted lanternfly (Hemiptera: Fulgoridae) when feeding on grapevines and tree of heaven. Frontiers in Insect Science 3: 1091332. https://doi.org/10.3389/finsc.2023.1091332.
 
