@@ -8,11 +8,15 @@
 
 #' Constructor for lifestage object
 #'
-#' @param name          Name of the stage e.g. "First instar larvae"
-#' @param devFunction   The development function to use e.g. linear_development
-#' @param devParameters Named list of parameters for the development function e.g. c(b = 10, q = 500)
-#' @param varFunction   The variability function to use e.g. cum_normal_variability
-#' @param varParameters Named list of parameters for the variability function e.g. c(sd = 0.1)
+#' @param name Name of the stage e.g. "First instar larvae"
+#' @param devFunction The development function to use
+#'   e.g. linear_development
+#' @param devParameters Named list of parameters for the development function
+#'   e.g. c(b = 10, q = 500)
+#' @param varFunction The variability function to use
+#'   e.g. cum_normal_variability
+#' @param varParameters Named list of parameters for the variability function
+#'   e.g. c(sd = 0.1)
 #' @returns A lifestage object
 #' @export
 #' @examples
@@ -86,12 +90,16 @@ print.lifestage <- function(x) {
   cat(x$name, ":\n", sep = "")
   cat("\tDevelopment function: ",
     x$devFunctionName, "(",
-    if (length(x$devParameters)) toString(paste(names(x$devParameters), "=", x$devParameters)) else "",
+    if (length(x$devParameters)) {
+      toString(paste(names(x$devParameters), "=", x$devParameters))
+    } else "",
     ")\n", sep = ""
   )
   cat("\tVariability function: ",
     x$varFunctionName, "(",
-    if (length(x$varParameters)) toString(paste(names(x$varParameters), "=", x$varParameters)) else "",
+    if (length(x$varParameters)) {
+      toString(paste(names(x$varParameters), "=", x$varParameters))
+    } else "",
     ")\n", sep = ""
   )
   cat("\tDevelopment today: ", signif(x$devToday, 5), "\n", sep = "")
@@ -162,7 +170,11 @@ survive.lifestage <- function(
   s <- max(0, min(1, survival_rate))
   d <- max(0, min(1, day_fraction))
   surv <- s ^ d
-  x$cohorts$CurrentNumber <- rbinom(nrow(x$cohorts), x$cohorts$CurrentNumber, surv)
+  x$cohorts$CurrentNumber <- rbinom(
+    nrow(x$cohorts),
+    x$cohorts$CurrentNumber,
+    surv
+  )
   x$cohorts <- dplyr::filter(x$cohorts, CurrentNumber > 0)
   x
 }
@@ -185,7 +197,8 @@ kill_all.lifestage <- function(x) {
 #' Develop cohorts for one timestep
 #'
 #' @param x A lifestage object
-#' @param drivers A tibble row with degreesC, daylength, daytrend and dayfraction
+#' @param drivers A tibble row with degreesC, daylength, daytrend and
+#'   dayfraction
 #' @returns The updated lifestage object
 #' @export
 #' @examples
@@ -241,7 +254,7 @@ maturing.lifestage <- function(x, ...) {
 #' Get total number in lifestage
 #'
 #' @param x A lifestage object
-#' @returns The total number of individuals in that lifestage, across all cohorts
+#' @returns Total number of individuals in that lifestage, across all cohorts
 #' @export
 #' @examples
 #'   total(larvae)

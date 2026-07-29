@@ -7,9 +7,11 @@
 
 #' Constructor for daylength diapausing life stage
 #'
-#' @param name      The name of the stage e.g. "Diapausing eggs"
-#' @param Threshold The required daylength (in hours) for completing the stage (positive for increasing daylength, negative for decreasing)
-#' @param ReqTrend  The required trend in daylength: 1 for increasing daylength, -1 for decreasing daylength
+#' @param name The name of the stage e.g. "Diapausing eggs"
+#' @param Threshold The required daylength (in hours) for completing the stage
+#'   (positive for increasing daylength, negative for decreasing)
+#' @param ReqTrend The required trend in daylength: 1 for increasing daylength,
+#'   -1 for decreasing daylength
 #' @param Variation The variation around the threshold (in hours)
 #' @returns A daylength_lifestage object
 #' @export
@@ -87,7 +89,11 @@ survive.daylength_lifestage <- function(
   s <- max(0, min(1, survival_rate))
   d <- max(0, min(1, day_fraction))
   surv <- s ^ d
-  size <- ifelse(is.na(x$numberTotal) | x$numberTotal < 0, 0, floor(x$numberTotal))
+  size <- ifelse(
+    is.na(x$numberTotal) | x$numberTotal < 0,
+    0,
+    floor(x$numberTotal)
+  )
   x$numberTotal <- rbinom(1, x$numberTotal, surv)
   x
 }
@@ -119,7 +125,8 @@ develop.daylength_lifestage <- function(x, drivers) {
   x$devToday <- 0
   if (x$numberTotal == 0 || drivers$daytrend != x$dlReqTrend) return(x)
 
-  p <- 1 / (1 + exp(-(4.6 / x$dlVariation) * x$dlReqTrend * (drivers$daylength - x$dlThreshold)))  # logistic variability
+  p <- 1 / (1 + exp(-(4.6 / x$dlVariation) * x$dlReqTrend *
+    (drivers$daylength - x$dlThreshold)))  # logistic variability
   if (x$PropnMatured >= 0.999) {
     x$numberMaturing <- x$numberTotal
     x$numberTotal <- 0L

@@ -7,13 +7,20 @@
 #' Constructor
 #'
 #' @param name Name of the stage e.g. "Eggs"
-#' @param devFunction     The development function to use e.g. linear_development
-#' @param devParameters   Named list of parameters for the development function e.g. c(b = 10, q = 500)
-#' @param varFunction     The variability function to use e.g. cum_normal_variability
-#' @param varParameters   Named list of parameters for the variability function e.g. c(sd = 0.1)
-#' @param chillFunction   The chill accumulation function e.g. linear_chill
-#' @param chillParameters Named list of parameters for the variability function e.g. c(T_chill = 5)
-#' @param chillResponse   The function relating the cumulative chill to the relative development rate (0 to 1).
+#' @param devFunction The development function to use
+#'   e.g. linear_development
+#' @param devParameters Named list of parameters for the development function
+#'   e.g. c(b = 10, q = 500)
+#' @param varFunction The variability function to use
+#'   e.g. cum_normal_variability
+#' @param varParameters Named list of parameters for the variability function
+#'   e.g. c(sd = 0.1)
+#' @param chillFunction The chill accumulation function
+#'   e.g. linear_chill
+#' @param chillParameters Named list of parameters for the variability function
+#'   e.g. c(T_chill = 5)
+#' @param chillResponse The function relating the cumulative chill to the
+#'   relative development rate (0 to 1).
 #' @returns A chilled_lifestage object
 #' @export
 #' @examples
@@ -115,7 +122,7 @@ add_cohort.chilled_lifestage <- function(
 #' Develop cohorts for one timestep
 #'
 #' @param x A chilled_lifestage object
-#' @param drivers A tibble row with degreesC, daylength, daytrend and dayfraction
+#' @param drivers Tibble row with degreesC, daylength, daytrend and dayfraction
 #' @returns The updated chilled_lifestage object
 #' @export
 #' @examples
